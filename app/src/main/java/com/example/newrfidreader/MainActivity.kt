@@ -1,8 +1,10 @@
 package com.example.newrfidreader
 
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Drawable
+import android.net.Uri
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.os.Bundle
@@ -18,6 +20,10 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import java.math.BigInteger
 
 class MainActivity : AppCompatActivity() {
+
+    // --- NEW: Constants for SharedPreferences ---
+    private val PREFS_NAME = "NfcAppPrefs"
+    private val PREF_KEY_BACKGROUND_URI = "background_image_uri"
 
     private var nfcAdapter: NfcAdapter? = null
     private lateinit var nfcSerialNumberTextView: TextView
@@ -39,13 +45,21 @@ class MainActivity : AppCompatActivity() {
 
     private val photoPickerLauncher = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
+            // --- MODIFIED: Added saving logic ---
             try {
-                val inputStream = contentResolver.openInputStream(uri)
-                val drawable = Drawable.createFromStream(inputStream, uri.toString())
-                mainLayout.background = drawable
+                // Take persistent permission to access this URI across app restarts
+                val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                contentResolver.takePersistableUriPermission(uri, flags)
+
+                // Save the URI string to SharedPreferences
+                saveBackgroundUri(uri.toString())
+
+                // Load the image into the background
+                loadBackgroundFromUri(uri)
+
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Failed to load or save image", Toast.LENGTH_SHORT).show()
             }
         } else {
             Toast.makeText(this, "No image selected", Toast.LENGTH_SHORT).show()
@@ -75,6 +89,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         setupButtonListeners()
+
+        // --- NEW: Load the saved background on startup ---
+        loadSavedBackground()
     }
 
 
@@ -143,6 +160,37 @@ class MainActivity : AppCompatActivity() {
                 setControlsEnabled(true)
             }
         }
+    }
+
+    // --- NEW: Helper function to load the saved background URI ---
+    private fun loadSavedBackground() {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val uriString = prefs.getString(PREF_KEY_BACKGROUND_URI, null)
+        if (uriString != null) {
+            try {
+                val uri = Uri.parse(uriString)
+                loadBackgroundFromUri(uri)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(this, "Failed to load saved background", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // --- NEW: Helper function to save the background URI string ---
+    private fun saveBackgroundUri(uriString: String) {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        with(prefs.edit()) {
+            putString(PREF_KEY_BACKGROUND_URI, uriString)
+            apply() // apply() saves the data in the background
+        }
+    }
+
+    // --- NEW: Refactored image loading logic into its own function ---
+    private fun loadBackgroundFromUri(uri: Uri) {
+        val inputStream = contentResolver.openInputStream(uri)
+        val drawable = Drawable.createFromStream(inputStream, uri.toString())
+        mainLayout.background = drawable
     }
 
     // --- Add this new helper function ---
