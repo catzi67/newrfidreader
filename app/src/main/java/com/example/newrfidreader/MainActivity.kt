@@ -1,7 +1,6 @@
 package com.example.newrfidreader
 
 import android.app.PendingIntent
-import android.util.Log
 import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.nfc.NfcAdapter
@@ -19,9 +18,6 @@ import java.math.BigInteger
 
 class MainActivity : AppCompatActivity() {
 
-    // Add a TAG for logging
-    private val TAG = "NFCApp"
-
     private var nfcAdapter: NfcAdapter? = null
     private lateinit var nfcSerialNumberTextView: TextView
     private lateinit var reverseButton: Button
@@ -30,9 +26,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mainLayout: ConstraintLayout
 
     private var isReversed = false
-    // Holds the original, unmodified bytes from the NFC tag
     private var originalSerialNumberBytes: ByteArray? = null
-    // Holds the bytes to be displayed (can be original or reversed)
     private var displayedSerialNumberBytes: ByteArray? = null
 
     private enum class NumberFormat { HEX, DEC, BIN }
@@ -57,10 +51,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Add this log message
-        Log.d(TAG, "onCreate: Activity created.")
-
-
         nfcSerialNumberTextView = findViewById(R.id.nfc_serial_number)
         reverseButton = findViewById(R.id.reverse_button)
         formatRadioGroup = findViewById(R.id.format_radio_group)
@@ -74,7 +64,6 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        Log.d(TAG, "onCreate: NFC Adapter found.")
         setupButtonListeners()
     }
 
@@ -85,15 +74,12 @@ class MainActivity : AppCompatActivity() {
             isReversed = !isReversed
 
             if (isReversed) {
-                // Reverse the actual byte array
                 displayedSerialNumberBytes = originalSerialNumberBytes?.reversedArray()
                 reverseButton.text = "Un-reverse"
             } else {
-                // Revert to the original byte array
                 displayedSerialNumberBytes = originalSerialNumberBytes
                 reverseButton.text = "Reverse"
             }
-            // Update the display with the newly ordered bytes
             displaySerialNumber()
         }
 
@@ -103,7 +89,6 @@ class MainActivity : AppCompatActivity() {
                 R.id.radio_bin -> NumberFormat.BIN
                 else -> NumberFormat.HEX
             }
-            // When format changes, reset the reversal state and display
             isReversed = false
             reverseButton.text = "Reverse"
             displayedSerialNumberBytes = originalSerialNumberBytes
@@ -122,44 +107,30 @@ class MainActivity : AppCompatActivity() {
             PendingIntent.FLAG_MUTABLE
         )
         nfcAdapter?.enableForegroundDispatch(this, pendingIntent, null, null)
-
-        // Add this log message
-        Log.d(TAG, "onResume: Foreground dispatch enabled.")
     }
+
+
 
     override fun onPause() {
         super.onPause()
         nfcAdapter?.disableForegroundDispatch(this)
-
-        // Add this log message
-        Log.d(TAG, "onPause: Foreground dispatch disabled.")
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         if (NfcAdapter.ACTION_TAG_DISCOVERED == intent.action) {
-            // Add this log to see if we get inside the 'if' block
-            Log.d(TAG, "onNewIntent: TAG_DISCOVERED intent.")
-
-
             val tag: Tag? = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG)
             tag?.let {
-                Log.d(TAG, "onNewIntent: Tag parsed successfully.")
-                // Store the original bytes
                 originalSerialNumberBytes = it.id
-                // Set the initial display bytes to the original order
                 displayedSerialNumberBytes = originalSerialNumberBytes
-                // Reset state for the new card
                 isReversed = false
                 reverseButton.text = "Reverse"
-                // Display the number in the currently selected format
                 displaySerialNumber()
             }
         }
     }
 
     private fun displaySerialNumber() {
-        // Always use the 'displayedSerialNumberBytes' for conversion
         displayedSerialNumberBytes?.let { bytes ->
             val numberAsString = when (currentFormat) {
                 NumberFormat.HEX -> bytesToHexString(bytes)
@@ -171,7 +142,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun bytesToHexString(bytes: ByteArray): String {
-        // Create hex string by joining each byte, separated by a space for readability
         return bytes.joinToString(" ") { "%02X".format(it) }
     }
 
