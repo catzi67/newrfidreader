@@ -7,6 +7,7 @@ import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.os.Bundle
 import android.widget.Button
+import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
@@ -24,6 +25,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var formatRadioGroup: RadioGroup
     private lateinit var selectBackgroundButton: Button
     private lateinit var mainLayout: ConstraintLayout
+
+    private lateinit var radioHex: RadioButton
+    private lateinit var radioDec: RadioButton
+    private lateinit var radioBin: RadioButton
 
     private var isReversed = false
     private var originalSerialNumberBytes: ByteArray? = null
@@ -57,6 +62,11 @@ class MainActivity : AppCompatActivity() {
         selectBackgroundButton = findViewById(R.id.select_background_button)
         mainLayout = findViewById(R.id.main_layout)
 
+        // Add these to get references to the individual radio buttons
+        radioHex = findViewById(R.id.radio_hex)
+        radioDec = findViewById(R.id.radio_dec)
+        radioBin = findViewById(R.id.radio_bin)
+
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
         if (nfcAdapter == null) {
             Toast.makeText(this, "NFC is not available on this device.", Toast.LENGTH_LONG).show()
@@ -66,6 +76,7 @@ class MainActivity : AppCompatActivity() {
 
         setupButtonListeners()
     }
+
 
     private fun setupButtonListeners() {
         reverseButton.setOnClickListener {
@@ -126,8 +137,21 @@ class MainActivity : AppCompatActivity() {
                 isReversed = false
                 reverseButton.text = "Reverse"
                 displaySerialNumber()
+
+                // --- This is the new part ---
+                // Enable the controls now that we have a number
+                setControlsEnabled(true)
             }
         }
+    }
+
+    // --- Add this new helper function ---
+    private fun setControlsEnabled(isEnabled: Boolean) {
+        reverseButton.isEnabled = isEnabled
+        formatRadioGroup.isEnabled = isEnabled
+        radioHex.isEnabled = isEnabled
+        radioDec.isEnabled = isEnabled
+        radioBin.isEnabled = isEnabled
     }
 
     private fun displaySerialNumber() {

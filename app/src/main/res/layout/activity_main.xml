@@ -32,6 +32,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
         android:background="#80000000"
+        android:enabled="false"
         android:orientation="horizontal"
         android:paddingStart="16dp"
         android:paddingTop="8dp"
@@ -47,6 +48,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:checked="true"
+            android:enabled="false"
             android:text="Hex"
             android:textColor="@android:color/white" />
 
@@ -55,6 +57,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
+            android:enabled="false"
             android:text="Decimal"
             android:textColor="@android:color/white" />
 
@@ -63,6 +66,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
+            android:enabled="false"
             android:text="Binary"
             android:textColor="@android:color/white" />
     </RadioGroup>
@@ -82,6 +86,7 @@
             android:id="@+id/reverse_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:enabled="false"
             android:text="Reverse" />
 
         <Button
