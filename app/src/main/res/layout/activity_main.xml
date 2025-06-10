@@ -26,6 +26,25 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_chainStyle="packed" />
 
+    <TextView
+        android:id="@+id/nfc_tag_info"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        android:background="#80000000"
+        android:gravity="center"
+        android:padding="8dp"
+        android:textColor="@android:color/white"
+        android:textSize="14sp"
+        app:layout_constraintBottom_toTopOf="@+id/format_radio_group"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/nfc_serial_number"
+        tools:text="Tag Type: MIFARE Classic\nTechnologies: NfcA, MifareClassic" />
+
+
     <RadioGroup
         android:id="@+id/format_radio_group"
         android:layout_width="wrap_content"
@@ -41,7 +60,7 @@
         app:layout_constraintBottom_toTopOf="@+id/button_controls_layout"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/nfc_serial_number">
+        app:layout_constraintTop_toBottomOf="@+id/nfc_tag_info">
 
         <RadioButton
             android:id="@+id/radio_hex"

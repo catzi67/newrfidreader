@@ -18,6 +18,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import java.math.BigInteger
+import android.nfc.tech.MifareClassic
+import android.nfc.tech.NfcA
 
 class MainActivity : AppCompatActivity() {
 
@@ -39,6 +41,8 @@ class MainActivity : AppCompatActivity() {
     private var isReversed = false
     private var originalSerialNumberBytes: ByteArray? = null
     private var displayedSerialNumberBytes: ByteArray? = null
+
+    private lateinit var nfcTagInfoTextView: TextView // NEW
 
     private enum class NumberFormat { HEX, DEC, BIN }
     private var currentFormat = NumberFormat.HEX
@@ -75,6 +79,7 @@ class MainActivity : AppCompatActivity() {
         formatRadioGroup = findViewById(R.id.format_radio_group)
         selectBackgroundButton = findViewById(R.id.select_background_button)
         mainLayout = findViewById(R.id.main_layout)
+        nfcTagInfoTextView = findViewById(R.id.nfc_tag_info) // NEW
 
         // Add these to get references to the individual radio buttons
         radioHex = findViewById(R.id.radio_hex)
@@ -91,9 +96,15 @@ class MainActivity : AppCompatActivity() {
         setupButtonListeners()
 
         // --- NEW: Load the saved background on startup ---
+        resetUI()
         loadSavedBackground()
     }
 
+    private fun resetUI() {
+        nfcSerialNumberTextView.text = "Scan an RFID Card"
+        nfcTagInfoTextView.text = "" // Clear the tag info
+        setControlsEnabled(false)
+    }
 
     private fun setupButtonListeners() {
         reverseButton.setOnClickListener {
@@ -149,18 +160,57 @@ class MainActivity : AppCompatActivity() {
         if (NfcAdapter.ACTION_TAG_DISCOVERED == intent.action) {
             val tag: Tag? = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG)
             tag?.let {
+                // --- This is the new part ---
+                val tagInfo = parseTagInfo(it)
+                nfcTagInfoTextView.text = tagInfo
+
                 originalSerialNumberBytes = it.id
                 displayedSerialNumberBytes = originalSerialNumberBytes
                 isReversed = false
                 reverseButton.text = "Reverse"
                 displaySerialNumber()
-
-                // --- This is the new part ---
-                // Enable the controls now that we have a number
                 setControlsEnabled(true)
             }
         }
     }
+
+    // --- Add this new parsing function ---
+    private fun parseTagInfo(tag: Tag): String {
+        val sb = StringBuilder()
+        val techList = tag.techList.map { it.substringAfterLast('.') }
+        sb.append("Technologies: ").append(techList.joinToString(", ")).append("\n")
+
+        // Check for specific technologies and extract more detailed info
+        for (tech in techList) {
+            when (tech) {
+                "MifareClassic" -> {
+                    MifareClassic.get(tag)?.use { mifare ->
+                        val type = when (mifare.type) {
+                            MifareClassic.TYPE_CLASSIC -> "MIFARE Classic"
+                            MifareClassic.TYPE_PLUS -> "MIFARE Plus"
+                            MifareClassic.TYPE_PRO -> "MIFARE Pro"
+                            else -> "Unknown MIFARE"
+                        }
+                        sb.append("Type: ").append(type).append("\n")
+                        sb.append("Size: ").append(mifare.size).append(" bytes\n")
+                        sb.append("Sectors: ").append(mifare.sectorCount).append("\n")
+                    }
+                }
+                "NfcA" -> {
+                    NfcA.get(tag)?.use { nfcA ->
+                        sb.append("ATQA: 0x").append(nfcA.atqa.toHexString()).append("\n")
+                        sb.append("SAK: 0x").append(Integer.toHexString(nfcA.sak.toInt())).append("\n")
+                    }
+                }
+            }
+        }
+        return sb.toString().trim()
+    }
+
+    // --- Add this helper extension function for converting bytes to hex ---
+    fun ByteArray.toHexString(): String = joinToString("") { "%02X".format(it) }
+
+
 
     // --- NEW: Helper function to load the saved background URI ---
     private fun loadSavedBackground() {
