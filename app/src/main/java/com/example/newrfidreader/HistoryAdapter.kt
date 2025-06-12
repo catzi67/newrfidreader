@@ -27,9 +27,15 @@ class HistoryAdapter : ListAdapter<ScannedCard, HistoryAdapter.CardViewHolder>(C
         private val tagInfoView: TextView = itemView.findViewById(R.id.tag_info_text)
 
         fun bind(card: ScannedCard) {
-            serialNumberView.text = "SN: ${card.serialNumberHex}"
+            val context = itemView.context // Get context from the item view
+
+            // Pass the serial number as an argument to the formatted string resource
+            serialNumberView.text = context.getString(R.string.history_sn_formatted, card.serialNumberHex)
+
             tagInfoView.text = card.tagInfo
-            timestampView.text = "Scanned: ${formatTimestamp(card.scanTimestamp)}"
+
+            // Pass the formatted timestamp as an argument
+            timestampView.text = context.getString(R.string.history_scanned_formatted, formatTimestamp(card.scanTimestamp))
         }
 
         private fun formatTimestamp(timestamp: Long): String {

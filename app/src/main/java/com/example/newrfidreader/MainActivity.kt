@@ -1,5 +1,6 @@
 package com.example.newrfidreader
 
+import android.os.Build // <-- Make sure this import is present
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.app.PendingIntent
@@ -10,7 +11,6 @@ import android.net.Uri
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.os.Bundle
-import android.widget.Button
 import android.widget.ImageButton // <-- Make sure this import is here
 import android.widget.RadioButton
 import android.widget.RadioGroup
@@ -26,6 +26,7 @@ import android.nfc.tech.NfcA
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import androidx.core.net.toUri // <-- ADD THIS IMPORT STATEMENT
 
 class MainActivity : AppCompatActivity() {
 
@@ -73,10 +74,11 @@ class MainActivity : AppCompatActivity() {
 
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(this, "Failed to load or save image", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.toast_failed_to_load_image), Toast.LENGTH_SHORT).show() // CHANGED
             }
         } else {
-            Toast.makeText(this, "No image selected", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_no_image_selected), Toast.LENGTH_SHORT).show() // CHANGED
+
         }
     }
 
@@ -101,7 +103,7 @@ class MainActivity : AppCompatActivity() {
 
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
         if (nfcAdapter == null) {
-            Toast.makeText(this, "NFC is not available on this device.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.toast_nfc_not_available), Toast.LENGTH_LONG).show() // CHANGED
             finish()
             return
 
@@ -122,7 +124,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun resetUI() {
-        nfcSerialNumberTextView.text = "Scan an RFID Card"
+        nfcSerialNumberTextView.text = getString(R.string.scan_prompt) // CHANGED
         nfcTagInfoTextView.text = "" // Clear the tag info
         setControlsEnabled(false)
         copyFab.hide() // NEW: Hide the FAB when there's nothing to copy
@@ -174,7 +176,8 @@ class MainActivity : AppCompatActivity() {
                 clipboard.setPrimaryClip(clip)
 
                 // Give the user feedback
-                Toast.makeText(this, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.toast_copied_to_clipboard), Toast.LENGTH_SHORT).show() // CHANGED
+
             }
         }
     }
@@ -198,7 +201,20 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         if (NfcAdapter.ACTION_TAG_DISCOVERED == intent.action) {
-            val tag: Tag? = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG)
+
+            // --- THIS IS THE UPDATED SECTION ---
+
+            val tag: Tag? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                // Use the new, type-safe method for Android 13 (API 33) and higher
+                intent.getParcelableExtra(NfcAdapter.EXTRA_TAG, Tag::class.java)
+            } else {
+                // Use the old, deprecated method for older versions
+                @Suppress("DEPRECATION")
+                intent.getParcelableExtra(NfcAdapter.EXTRA_TAG)
+            }
+
+            // --- The rest of the function remains the same ---
+
             tag?.let {
                 // --- This is the new part ---
                 val tagInfo = parseTagInfo(it)
@@ -272,11 +288,15 @@ class MainActivity : AppCompatActivity() {
         val uriString = prefs.getString(PREF_KEY_BACKGROUND_URI, null)
         if (uriString != null) {
             try {
-                val uri = Uri.parse(uriString)
+                // BEFORE: val uri = Uri.parse(uriString)
+                // AFTER:
+                val uri = uriString.toUri() // This is the change
+
                 loadBackgroundFromUri(uri)
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(this, "Failed to load saved background", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.toast_failed_to_load_saved_background), Toast.LENGTH_SHORT).show() // CHANGED
+
             }
         }
     }

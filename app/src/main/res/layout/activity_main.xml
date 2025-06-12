@@ -31,10 +31,10 @@
 
             <TextView
                 android:id="@+id/nfc_serial_number"
+                android:text="@string/scan_prompt"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:text="Scan an RFID Card"
                 android:textColor="@android:color/white"
                 android:textSize="24sp"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -79,29 +79,29 @@
 
         <RadioButton
             android:id="@+id/radio_hex"
+            android:text="@string/format_hex"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:checked="true"
             android:enabled="false"
-            android:text="Hex"
             android:textColor="@android:color/white" />
 
         <RadioButton
             android:id="@+id/radio_dec"
+            android:text="@string/format_dec"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:enabled="false"
-            android:text="Decimal"
             android:textColor="@android:color/white" />
 
         <RadioButton
             android:id="@+id/radio_bin"
+            android:text="@string/format_bin"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:enabled="false"
-            android:text="Binary"
             android:textColor="@android:color/white" />
     </RadioGroup>
 
@@ -118,10 +118,10 @@
 
         <ImageButton
             android:id="@+id/reverse_button"
+            android:contentDescription="@string/content_desc_reverse_button"
             android:layout_width="64dp"
             android:layout_height="64dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Reverse Serial Number"
             android:enabled="false"
             android:padding="16dp"
             android:scaleType="fitCenter"
@@ -130,11 +130,11 @@
 
         <ImageButton
             android:id="@+id/select_background_button"
+            android:contentDescription="@string/content_desc_select_background_button"
             android:layout_width="64dp"
             android:layout_height="64dp"
             android:layout_marginStart="24dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Select Background Image"
             android:padding="16dp"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_image_24"
@@ -142,11 +142,11 @@
 
         <ImageButton
             android:id="@+id/history_button"
+            android:contentDescription="@string/content_desc_history_button"
             android:layout_width="64dp"
             android:layout_height="64dp"
             android:layout_marginStart="24dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="View Scan History"
             android:padding="16dp"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_history_24"
@@ -156,10 +156,10 @@
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_copy"
+        android:contentDescription="@string/content_desc_copy_fab"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
-        android:contentDescription="Copy to Clipboard"
         android:src="@drawable/ic_content_copy_24"
         android:visibility="invisible"
         app:layout_constraintBottom_toBottomOf="parent"
