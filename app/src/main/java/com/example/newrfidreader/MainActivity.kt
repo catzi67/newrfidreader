@@ -1,5 +1,7 @@
 package com.example.newrfidreader
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -9,6 +11,7 @@ import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.os.Bundle
 import android.widget.Button
+import android.widget.ImageButton // <-- Make sure this import is here
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.TextView
@@ -20,8 +23,13 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import java.math.BigInteger
 import android.nfc.tech.MifareClassic
 import android.nfc.tech.NfcA
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 class MainActivity : AppCompatActivity() {
+
+    private val database by lazy { (application as App).database.scannedCardDao() }
 
     // --- NEW: Constants for SharedPreferences ---
     private val PREFS_NAME = "NfcAppPrefs"
@@ -29,10 +37,12 @@ class MainActivity : AppCompatActivity() {
 
     private var nfcAdapter: NfcAdapter? = null
     private lateinit var nfcSerialNumberTextView: TextView
-    private lateinit var reverseButton: Button
+    private lateinit var reverseButton: ImageButton
     private lateinit var formatRadioGroup: RadioGroup
-    private lateinit var selectBackgroundButton: Button
+    private lateinit var selectBackgroundButton: ImageButton
     private lateinit var mainLayout: ConstraintLayout
+    private lateinit var historyButton: ImageButton // <-- ADD THIS
+    private lateinit var copyFab: FloatingActionButton // NEW
 
     private lateinit var radioHex: RadioButton
     private lateinit var radioDec: RadioButton
@@ -78,8 +88,11 @@ class MainActivity : AppCompatActivity() {
         reverseButton = findViewById(R.id.reverse_button)
         formatRadioGroup = findViewById(R.id.format_radio_group)
         selectBackgroundButton = findViewById(R.id.select_background_button)
+        historyButton = findViewById(R.id.history_button) // <-- ADD THIS
         mainLayout = findViewById(R.id.main_layout)
         nfcTagInfoTextView = findViewById(R.id.nfc_tag_info) // NEW
+        copyFab = findViewById(R.id.fab_copy) // NEW: Initialize the FAB
+
 
         // Add these to get references to the individual radio buttons
         radioHex = findViewById(R.id.radio_hex)
@@ -91,6 +104,14 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "NFC is not available on this device.", Toast.LENGTH_LONG).show()
             finish()
             return
+
+        }
+
+        val historyButton: ImageButton = findViewById(R.id.history_button)
+
+        historyButton.setOnClickListener {
+            val intent = Intent(this, HistoryActivity::class.java)
+            startActivity(intent)
         }
 
         setupButtonListeners()
@@ -104,6 +125,7 @@ class MainActivity : AppCompatActivity() {
         nfcSerialNumberTextView.text = "Scan an RFID Card"
         nfcTagInfoTextView.text = "" // Clear the tag info
         setControlsEnabled(false)
+        copyFab.hide() // NEW: Hide the FAB when there's nothing to copy
     }
 
     private fun setupButtonListeners() {
@@ -114,10 +136,10 @@ class MainActivity : AppCompatActivity() {
 
             if (isReversed) {
                 displayedSerialNumberBytes = originalSerialNumberBytes?.reversedArray()
-                reverseButton.text = "Un-reverse"
+                reverseButton.setImageResource(R.drawable.ic_undo_24)
             } else {
                 displayedSerialNumberBytes = originalSerialNumberBytes
-                reverseButton.text = "Reverse"
+                reverseButton.setImageResource(R.drawable.ic_swap_horiz_24)
             }
             displaySerialNumber()
         }
@@ -129,13 +151,31 @@ class MainActivity : AppCompatActivity() {
                 else -> NumberFormat.HEX
             }
             isReversed = false
-            reverseButton.text = "Reverse"
+            reverseButton.setImageResource(R.drawable.ic_swap_horiz_24)
             displayedSerialNumberBytes = originalSerialNumberBytes
             displaySerialNumber()
         }
 
         selectBackgroundButton.setOnClickListener {
             photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        }
+
+        historyButton.setOnClickListener {
+            val intent = Intent(this, HistoryActivity::class.java)
+            startActivity(intent)
+        }
+
+        // NEW: Add a listener for our new FAB
+        copyFab.setOnClickListener {
+            val serialNumber = nfcSerialNumberTextView.text.toString()
+            if (serialNumber.isNotBlank() && serialNumber != "Scan an RFID Card") {
+                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip = ClipData.newPlainText("RFID Serial Number", serialNumber)
+                clipboard.setPrimaryClip(clip)
+
+                // Give the user feedback
+                Toast.makeText(this, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -165,11 +205,25 @@ class MainActivity : AppCompatActivity() {
                 nfcTagInfoTextView.text = tagInfo
 
                 originalSerialNumberBytes = it.id
+                val serialNumber = it.id.toHexString() // Get hex string for saving
+
                 displayedSerialNumberBytes = originalSerialNumberBytes
                 isReversed = false
-                reverseButton.text = "Reverse"
+                reverseButton.setImageResource(R.drawable.ic_swap_horiz_24)
                 displaySerialNumber()
                 setControlsEnabled(true)
+                copyFab.show() // NEW: Show the FAB now that there is data
+
+                // --- SAVE TO DATABASE ---
+                val cardToSave = ScannedCard(
+                    serialNumberHex = serialNumber,
+                    tagInfo = tagInfo,
+                    scanTimestamp = System.currentTimeMillis()
+                )
+                lifecycleScope.launch {
+                    database.insert(cardToSave)
+                }
+
             }
         }
     }

@@ -8,41 +8,56 @@
     android:background="@drawable/app_background"
     tools:context=".MainActivity">
 
-    <TextView
-        android:id="@+id/nfc_serial_number"
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/info_card"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
-        android:background="#80000000"
-        android:gravity="center"
-        android:padding="16dp"
-        android:text="Scan an RFID Card"
-        android:textColor="@android:color/white"
-        android:textSize="24sp"
+        app:cardBackgroundColor="#99212121"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="8dp"
         app:layout_constraintBottom_toTopOf="@+id/format_radio_group"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_chainStyle="packed" />
+        app:layout_constraintVertical_bias="0.45"
+        app:layout_constraintVertical_chainStyle="packed">
 
-    <TextView
-        android:id="@+id/nfc_tag_info"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="16dp"
-        android:background="#80000000"
-        android:gravity="center"
-        android:padding="8dp"
-        android:textColor="@android:color/white"
-        android:textSize="14sp"
-        app:layout_constraintBottom_toTopOf="@+id/format_radio_group"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/nfc_serial_number"
-        tools:text="Tag Type: MIFARE Classic\nTechnologies: NfcA, MifareClassic" />
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/nfc_serial_number"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="Scan an RFID Card"
+                android:textColor="@android:color/white"
+                android:textSize="24sp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:text="AA BB CC DD EE FF GG" />
+
+            <TextView
+                android:id="@+id/nfc_tag_info"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:gravity="center"
+                android:textColor="@android:color/white"
+                android:textSize="14sp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/nfc_serial_number"
+                tools:text="Type: MIFARE Classic\nTechnologies: NfcA, MifareClassic" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </com.google.android.material.card.MaterialCardView>
 
 
     <RadioGroup
@@ -50,7 +65,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
-        android:background="#80000000"
+        android:background="#99212121"
         android:enabled="false"
         android:orientation="horizontal"
         android:paddingStart="16dp"
@@ -60,7 +75,7 @@
         app:layout_constraintBottom_toTopOf="@+id/button_controls_layout"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/nfc_tag_info">
+        app:layout_constraintTop_toBottomOf="@+id/info_card">
 
         <RadioButton
             android:id="@+id/radio_hex"
@@ -101,20 +116,54 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/format_radio_group">
 
-        <Button
+        <ImageButton
             android:id="@+id/reverse_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Reverse Serial Number"
             android:enabled="false"
-            android:text="Reverse" />
+            android:padding="16dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_swap_horiz_24"
+            app:tint="@android:color/white" />
 
-        <Button
+        <ImageButton
             android:id="@+id/select_background_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:text="Select Background" />
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_marginStart="24dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Select Background Image"
+            android:padding="16dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_image_24"
+            app:tint="@android:color/white" />
+
+        <ImageButton
+            android:id="@+id/history_button"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_marginStart="24dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="View Scan History"
+            android:padding="16dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_history_24"
+            app:tint="@android:color/white" />
 
     </LinearLayout>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_copy"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:contentDescription="Copy to Clipboard"
+        android:src="@drawable/ic_content_copy_24"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:visibility="visible" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
