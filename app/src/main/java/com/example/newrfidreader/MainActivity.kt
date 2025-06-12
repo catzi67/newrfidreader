@@ -28,6 +28,13 @@ import kotlinx.coroutines.launch
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import androidx.core.net.toUri
 import androidx.core.content.edit
+import com.google.android.material.card.MaterialCardView
+import android.os.Handler
+import android.os.Looper
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowCompat
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -45,10 +52,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mainLayout: ConstraintLayout
     private lateinit var historyButton: ImageButton // <-- ADD THIS
     private lateinit var copyFab: FloatingActionButton // NEW
-
     private lateinit var radioHex: RadioButton
     private lateinit var radioDec: RadioButton
     private lateinit var radioBin: RadioButton
+    private lateinit var infoCard: MaterialCardView
+    private val resetHandler = Handler(Looper.getMainLooper())
+    private lateinit var resetRunnable: Runnable
 
     private var isReversed = false
     private var originalSerialNumberBytes: ByteArray? = null
@@ -84,6 +93,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // --- ADD THIS LINE FIRST ---
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
@@ -95,6 +106,14 @@ class MainActivity : AppCompatActivity() {
         mainLayout = findViewById(R.id.main_layout)
         nfcTagInfoTextView = findViewById(R.id.nfc_tag_info) // NEW
         copyFab = findViewById(R.id.fab_copy) // NEW: Initialize the FAB
+        infoCard = findViewById(R.id.info_card) // <-- NEW: Initialize the card view
+        mainLayout = findViewById(R.id.main_layout)
+
+        // --- NEW: Define what the reset Runnable does ---
+        resetRunnable = Runnable {
+            // This code will run after the delay
+            resetUI()
+        }
 
 
         // Add these to get references to the individual radio buttons
@@ -122,6 +141,19 @@ class MainActivity : AppCompatActivity() {
         // --- NEW: Load the saved background on startup ---
         resetUI()
         loadSavedBackground()
+
+        // This listener will be called when the layout is ready, providing the system bar insets.
+        ViewCompat.setOnApplyWindowInsetsListener(mainLayout) { view, windowInsets ->
+        val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+
+            // Apply the insets as padding to the view. This will push your content
+            // down from the status bar and up from the navigation bar.
+        view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
+
+            // Return a default value to signal that we've handled the insets.
+         WindowInsetsCompat.CONSUMED
+        }
+
     }
 
     private fun resetUI() {
@@ -129,6 +161,10 @@ class MainActivity : AppCompatActivity() {
         nfcTagInfoTextView.text = "" // Clear the tag info
         setControlsEnabled(false)
         copyFab.hide() // NEW: Hide the FAB when there's nothing to copy
+        // --- NEW ---
+        // Set the card's initial state for the animation: invisible and moved down
+        infoCard.alpha = 0f
+        infoCard.translationY = 50f // Move it down by 50 pixels
     }
 
     private fun setupButtonListeners() {
@@ -197,13 +233,17 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         nfcAdapter?.disableForegroundDispatch(this)
+
+        // --- NEW: Cancel any pending reset if the user leaves the activity ---
+        resetHandler.removeCallbacks(resetRunnable)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         if (NfcAdapter.ACTION_TAG_DISCOVERED == intent.action) {
 
-            // --- THIS IS THE UPDATED SECTION ---
+            // --- NEW: Cancel any previous timer when a new card is scanned ---
+            resetHandler.removeCallbacks(resetRunnable)
 
             val tag: Tag? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 // Use the new, type-safe method for Android 13 (API 33) and higher
@@ -231,6 +271,14 @@ class MainActivity : AppCompatActivity() {
                 setControlsEnabled(true)
                 copyFab.show() // NEW: Show the FAB now that there is data
 
+                // --- NEW ---
+                // Animate the card view to its final state
+                infoCard.animate()
+                    .alpha(1f) // Fade in to full opacity
+                    .translationY(0f) // Move it back to its original Y position
+                    .setDuration(400) // Animation duration in milliseconds
+                    .start()
+
                 // --- SAVE TO DATABASE ---
                 val cardToSave = ScannedCard(
                     serialNumberHex = serialNumber,
@@ -240,6 +288,8 @@ class MainActivity : AppCompatActivity() {
                 lifecycleScope.launch {
                     database.insert(cardToSave)
                 }
+                // --- NEW: Schedule the UI to reset in 10 seconds ---
+                resetHandler.postDelayed(resetRunnable, 10000) // 10,000 milliseconds = 10 seconds
 
             }
         }
