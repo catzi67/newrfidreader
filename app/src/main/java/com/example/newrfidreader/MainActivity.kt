@@ -26,7 +26,8 @@ import android.nfc.tech.NfcA
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import androidx.core.net.toUri // <-- ADD THIS IMPORT STATEMENT
+import androidx.core.net.toUri
+import androidx.core.content.edit
 
 class MainActivity : AppCompatActivity() {
 
@@ -304,9 +305,10 @@ class MainActivity : AppCompatActivity() {
     // --- NEW: Helper function to save the background URI string ---
     private fun saveBackgroundUri(uriString: String) {
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        with(prefs.edit()) {
+        // The KTX version is cleaner and safer.
+        // It automatically handles the .apply() call.
+        prefs.edit {
             putString(PREF_KEY_BACKGROUND_URI, uriString)
-            apply() // apply() saves the data in the background
         }
     }
 
