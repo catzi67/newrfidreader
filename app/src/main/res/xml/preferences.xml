@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory android:title="Appearance">
+
+        <Preference
+            android:key="pref_key_choose_background"
+            android:title="Choose background image"
+            android:summary="Select a custom image from your device"/>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Data Management">
+
+        <Preference
+            android:key="pref_key_reset_score"
+            android:title="Reset high score"
+            android:summary="Resets the all-time high score to 0"/>
+
+        <Preference
+            android:key="pref_key_clear_history"
+            android:title="Clear card history"
+            android:summary="Permanently deletes all saved card scans"/>
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

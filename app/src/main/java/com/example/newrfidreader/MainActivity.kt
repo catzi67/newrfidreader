@@ -16,7 +16,6 @@ import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -55,7 +54,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var nfcSerialNumberTextView: TextView
     private lateinit var reverseButton: ImageButton
     private lateinit var formatRadioGroup: RadioGroup
-    private lateinit var selectBackgroundButton: ImageButton
     private lateinit var mainLayout: ConstraintLayout
     private lateinit var historyButton: ImageButton // <-- ADD THIS
     private lateinit var copyFab: FloatingActionButton // NEW
@@ -70,8 +68,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var scoreValueText: TextView // <-- NEW
     private lateinit var highScoreValueText: TextView // <-- NEW
     private var highScore = 0 // <-- NEW
-    private lateinit var resetHighScoreButton: ImageButton // <-- NEW
-
+    private lateinit var settingsButton: ImageButton // NEW
 
     private var isReversed = false
     private var originalSerialNumberBytes: ByteArray? = null
@@ -115,7 +112,6 @@ class MainActivity : AppCompatActivity() {
         nfcSerialNumberTextView = findViewById(R.id.nfc_serial_number)
         reverseButton = findViewById(R.id.reverse_button)
         formatRadioGroup = findViewById(R.id.format_radio_group)
-        selectBackgroundButton = findViewById(R.id.select_background_button)
         historyButton = findViewById(R.id.history_button) // <-- ADD THIS
         mainLayout = findViewById(R.id.main_layout)
         nfcTagInfoTextView = findViewById(R.id.nfc_tag_info) // NEW
@@ -126,7 +122,7 @@ class MainActivity : AppCompatActivity() {
         scoreCard = findViewById(R.id.score_card)
         scoreValueText = findViewById(R.id.score_value_text)
         highScoreValueText = findViewById(R.id.high_score_value_text)
-        resetHighScoreButton = findViewById(R.id.reset_high_score_button)
+        settingsButton = findViewById(R.id.settings_button) // NEW
 
         // Set the initial animated state for both cards
         infoCard.alpha = 0f
@@ -246,12 +242,14 @@ class MainActivity : AppCompatActivity() {
             displaySerialNumber()
         }
 
-        selectBackgroundButton.setOnClickListener {
-            photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-        }
-
         historyButton.setOnClickListener {
             val intent = Intent(this, HistoryActivity::class.java)
+            startActivity(intent)
+        }
+
+        // --- ENSURE THIS BLOCK OF CODE IS PRESENT ---
+        settingsButton.setOnClickListener {
+            val intent = Intent(this, SettingsActivity::class.java)
             startActivity(intent)
         }
 
@@ -272,18 +270,12 @@ class MainActivity : AppCompatActivity() {
 
             }
         }
-
-        // --- NEW LISTENER for the reset button ---
-        resetHighScoreButton.setOnClickListener {
-            highScore = 0
-            saveHighScore(0)
-            highScoreValueText.text = "0"
-            Toast.makeText(this, getString(R.string.toast_high_score_reset), Toast.LENGTH_SHORT).show()
-        }
     }
 
     override fun onResume() {
         super.onResume()
+        loadHighScore()
+        loadSavedBackground()
         val pendingIntent = PendingIntent.getActivity(
             this, 0, Intent(this, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
             PendingIntent.FLAG_MUTABLE

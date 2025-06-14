@@ -9,6 +9,8 @@
     <string name="content_desc_select_background_button">Select Background Image</string>
     <string name="content_desc_history_button">View Scan History</string>
     <string name="content_desc_copy_fab">Copy to Clipboard</string>
+    <string name="content_desc_settings_button">Settings</string>
+
 
     <string name="content_desc_reset_score_button">Reset High Score</string>
     <string name="toast_high_score_reset">High score has been reset</string>

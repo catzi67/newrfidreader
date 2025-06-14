@@ -80,6 +80,8 @@
         android:id="@+id/info_card"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
         android:layout_marginTop="16dp"
         app:cardBackgroundColor="#99212121"
         app:cardCornerRadius="12dp"
@@ -122,6 +124,32 @@
     </com.google.android.material.card.MaterialCardView>
 
     <com.google.android.material.card.MaterialCardView
+        android:id="@+id/congrats_card"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:alpha="0"
+        android:elevation="10dp"
+        app:cardBackgroundColor="?attr/colorPrimary"
+        app:cardCornerRadius="12dp"
+        app:layout_constraintEnd_toEndOf="@id/score_card"
+        app:layout_constraintStart_toStartOf="@id/score_card"
+        app:layout_constraintTop_toBottomOf="@id/score_card"
+        tools:alpha="1">
+
+        <TextView
+            android:id="@+id/congrats_message_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:padding="16dp"
+            android:text="@string/congrats_new_high_score"
+            android:textColor="?attr/colorOnPrimary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+    </com.google.android.material.card.MaterialCardView>
+
+    <com.google.android.material.card.MaterialCardView
         android:id="@+id/prompt_card"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
@@ -143,18 +171,18 @@
             android:textSize="28sp" />
     </com.google.android.material.card.MaterialCardView>
 
-
     <RadioGroup
         android:id="@+id/format_radio_group"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
         android:layout_marginTop="24dp"
         android:background="#99212121"
         android:enabled="false"
+        android:gravity="center_horizontal"
         android:orientation="horizontal"
-        android:paddingStart="16dp"
         android:paddingTop="8dp"
-        android:paddingEnd="16dp"
         android:paddingBottom="8dp"
         app:layout_constraintBottom_toTopOf="@+id/button_controls_layout"
         app:layout_constraintEnd_toEndOf="parent"
@@ -210,17 +238,6 @@
             android:src="@drawable/ic_swap_horiz_24"
             app:tint="@android:color/white" />
         <ImageButton
-            android:id="@+id/select_background_button"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_marginStart="24dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/content_desc_select_background_button"
-            android:padding="16dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_image_24"
-            app:tint="@android:color/white" />
-        <ImageButton
             android:id="@+id/history_button"
             android:layout_width="64dp"
             android:layout_height="64dp"
@@ -231,17 +248,14 @@
             android:scaleType="fitCenter"
             android:src="@drawable/ic_history_24"
             app:tint="@android:color/white" />
-
         <ImageButton
-            android:id="@+id/reset_high_score_button"
+            android:id="@+id/settings_button"
             android:layout_width="64dp"
             android:layout_height="64dp"
             android:layout_marginStart="24dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/content_desc_reset_score_button"
-            android:padding="16dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_replay_24"
+            android:contentDescription="@string/content_desc_settings_button"
+            android:src="@drawable/ic_settings_24"
             app:tint="@android:color/white" />
 
     </LinearLayout>

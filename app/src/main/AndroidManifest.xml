@@ -15,9 +15,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.NewRFIDReader"
         tools:targetApi="31">
+
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false" />
+
         <activity
             android:name=".HistoryActivity"
             android:exported="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true">

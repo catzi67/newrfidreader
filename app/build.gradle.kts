@@ -69,5 +69,7 @@ dependencies {
     implementation("androidx.room:room-runtime:$room_version")
     implementation("androidx.room:room-ktx:$room_version") // For coroutine support
     ksp("androidx.room:room-compiler:$room_version")
+    implementation("androidx.activity:activity-ktx:1.10.1")
+    implementation("androidx.preference:preference-ktx:1.2.1")
 
 }
