@@ -11,7 +11,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.asLiveData
 import androidx.recyclerview.widget.RecyclerView
 
-
 class HistoryActivity : AppCompatActivity() {
 
     private val historyViewModel: HistoryViewModel by viewModels {
