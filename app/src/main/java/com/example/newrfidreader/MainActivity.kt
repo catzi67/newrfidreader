@@ -38,11 +38,13 @@ import androidx.core.view.WindowCompat
 
 class MainActivity : AppCompatActivity() {
 
-    private val database by lazy { (application as App).database.scannedCardDao() }
+    // --- NEW: A companion object for class-level constants ---
+    companion object {
+        private const val PREFS_NAME = "NfcAppPrefs"
+        private const val PREF_KEY_BACKGROUND_URI = "background_image_uri"
+    }
 
-    // --- NEW: Constants for SharedPreferences ---
-    private val PREFS_NAME = "NfcAppPrefs"
-    private val PREF_KEY_BACKGROUND_URI = "background_image_uri"
+    private val database by lazy { (application as App).database.scannedCardDao() }
 
     private var nfcAdapter: NfcAdapter? = null
     private lateinit var nfcSerialNumberTextView: TextView
@@ -329,7 +331,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // --- Add this helper extension function for converting bytes to hex ---
-    fun ByteArray.toHexString(): String = joinToString("") { "%02X".format(it) }
+    private fun ByteArray.toHexString(): String = joinToString("") { "%02X".format(it) }
 
 
 
