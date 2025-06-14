@@ -10,6 +10,10 @@
     <string name="content_desc_history_button">View Scan History</string>
     <string name="content_desc_copy_fab">Copy to Clipboard</string>
 
+    <string name="content_desc_reset_score_button">Reset High Score</string>
+    <string name="toast_high_score_reset">High score has been reset</string>
+    <string name="congrats_new_high_score">Congratulations! You\'ve set a new high score!</string>
+
     <string name="history_sn_formatted">SN: %1$s</string>
     <string name="history_scanned_formatted">Scanned: %1$s</string>
 

@@ -34,6 +34,9 @@ import android.os.Looper
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowCompat
+import java.nio.ByteBuffer
+import kotlin.math.pow // <-- NEW IMPORT
+import com.google.android.material.snackbar.Snackbar // <-- NEW IMPORT
 
 
 class MainActivity : AppCompatActivity() {
@@ -42,6 +45,8 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val PREFS_NAME = "NfcAppPrefs"
         private const val PREF_KEY_BACKGROUND_URI = "background_image_uri"
+        private const val PREF_KEY_HIGH_SCORE = "high_score" // <-- NEW KEY
+        private const val SCORING_EXPONENT = 4
     }
 
     private val database by lazy { (application as App).database.scannedCardDao() }
@@ -58,8 +63,15 @@ class MainActivity : AppCompatActivity() {
     private lateinit var radioDec: RadioButton
     private lateinit var radioBin: RadioButton
     private lateinit var infoCard: MaterialCardView
+    private lateinit var promptCard: MaterialCardView
     private val resetHandler = Handler(Looper.getMainLooper())
     private lateinit var resetRunnable: Runnable
+    private lateinit var scoreCard: MaterialCardView // <-- NEW
+    private lateinit var scoreValueText: TextView // <-- NEW
+    private lateinit var highScoreValueText: TextView // <-- NEW
+    private var highScore = 0 // <-- NEW
+    private lateinit var resetHighScoreButton: ImageButton // <-- NEW
+
 
     private var isReversed = false
     private var originalSerialNumberBytes: ByteArray? = null
@@ -109,7 +121,21 @@ class MainActivity : AppCompatActivity() {
         nfcTagInfoTextView = findViewById(R.id.nfc_tag_info) // NEW
         copyFab = findViewById(R.id.fab_copy) // NEW: Initialize the FAB
         infoCard = findViewById(R.id.info_card) // <-- NEW: Initialize the card view
+        promptCard = findViewById(R.id.prompt_card) // <-- NEW
         mainLayout = findViewById(R.id.main_layout)
+        scoreCard = findViewById(R.id.score_card)
+        scoreValueText = findViewById(R.id.score_value_text)
+        highScoreValueText = findViewById(R.id.high_score_value_text)
+        resetHighScoreButton = findViewById(R.id.reset_high_score_button)
+
+        // Set the initial animated state for both cards
+        infoCard.alpha = 0f
+        promptCard.alpha = 0f
+        formatRadioGroup.alpha = 0f // <-- NEW
+        scoreCard.alpha = 0f // <-- NEW
+
+        // --- NEW: Load the high score on startup ---
+        loadHighScore()
 
         // --- NEW: Define what the reset Runnable does ---
         resetRunnable = Runnable {
@@ -159,7 +185,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun resetUI() {
-        nfcSerialNumberTextView.text = getString(R.string.scan_prompt) // CHANGED
+        //nfcSerialNumberTextView.text = getString(R.string.scan_prompt) // CHANGED
         nfcTagInfoTextView.text = "" // Clear the tag info
         setControlsEnabled(false)
         copyFab.hide() // NEW: Hide the FAB when there's nothing to copy
@@ -167,10 +193,29 @@ class MainActivity : AppCompatActivity() {
         // Set the card's initial state for the animation: invisible and moved down
         infoCard.alpha = 0f
         infoCard.translationY = 50f // Move it down by 50 pixels
+
+        promptCard.animate()
+            .alpha(1f)
+            .setDuration(400)
+            .start()
+        // Animate the radio buttons OUT
+
+        formatRadioGroup.animate() // <-- NEW
+            .alpha(0f)
+            .setDuration(400)
+            .start()
+
+        // Animate the score card OUT
+        scoreCard.animate().alpha(0f).setDuration(400).start() // <-- NEW
+
     }
 
     private fun setupButtonListeners() {
         reverseButton.setOnClickListener {
+            // --- ADD THESE TWO LINES ---
+            resetHandler.removeCallbacks(resetRunnable) // Cancel the old timer
+            resetHandler.postDelayed(resetRunnable, 20000) // Start a new one
+
             if (originalSerialNumberBytes == null) return@setOnClickListener
 
             isReversed = !isReversed
@@ -186,6 +231,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         formatRadioGroup.setOnCheckedChangeListener { _, checkedId ->
+            // --- ADD THESE TWO LINES ---
+            resetHandler.removeCallbacks(resetRunnable) // Cancel the old timer
+            resetHandler.postDelayed(resetRunnable, 20000) // Start a new one
+
             currentFormat = when (checkedId) {
                 R.id.radio_dec -> NumberFormat.DEC
                 R.id.radio_bin -> NumberFormat.BIN
@@ -208,6 +257,10 @@ class MainActivity : AppCompatActivity() {
 
         // NEW: Add a listener for our new FAB
         copyFab.setOnClickListener {
+            // --- ADD THESE TWO LINES ---
+            resetHandler.removeCallbacks(resetRunnable) // Cancel the old timer
+            resetHandler.postDelayed(resetRunnable, 20000) // Start a new one
+
             val serialNumber = nfcSerialNumberTextView.text.toString()
             if (serialNumber.isNotBlank() && serialNumber != "Scan an RFID Card") {
                 val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -218,6 +271,14 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, getString(R.string.toast_copied_to_clipboard), Toast.LENGTH_SHORT).show() // CHANGED
 
             }
+        }
+
+        // --- NEW LISTENER for the reset button ---
+        resetHighScoreButton.setOnClickListener {
+            highScore = 0
+            saveHighScore(0)
+            highScoreValueText.text = "0"
+            Toast.makeText(this, getString(R.string.toast_high_score_reset), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -273,6 +334,17 @@ class MainActivity : AppCompatActivity() {
                 setControlsEnabled(true)
                 copyFab.show() // NEW: Show the FAB now that there is data
 
+
+                // --- UPDATED ANIMATION LOGIC (A "Cross-fade") ---
+                // Hide the prompt card
+                promptCard.animate()
+                    .alpha(0f)
+                    .setDuration(400)
+                    .start()
+
+                // Show the details card
+                infoCard.alpha = 0f // Reset before animating
+                infoCard.translationY = 50f
                 // --- NEW ---
                 // Animate the card view to its final state
                 infoCard.animate()
@@ -280,6 +352,13 @@ class MainActivity : AppCompatActivity() {
                     .translationY(0f) // Move it back to its original Y position
                     .setDuration(400) // Animation duration in milliseconds
                     .start()
+
+                // Animate the radio buttons IN
+                formatRadioGroup.animate() // <-- NEW
+                    .alpha(1f)
+                    .setDuration(400)
+                    .start()
+
 
                 // --- SAVE TO DATABASE ---
                 val cardToSave = ScannedCard(
@@ -290,12 +369,80 @@ class MainActivity : AppCompatActivity() {
                 lifecycleScope.launch {
                     database.insert(cardToSave)
                 }
+
+                // --- NEW SCORING LOGIC ---
+                val score = calculateScore(it.id)
+                scoreValueText.text = score.toString()
+
+                if (score > highScore) {
+                    highScore = score
+                    saveHighScore(highScore)
+                    highScoreValueText.text = highScore.toString()
+
+                    // Trigger the congratulations animation
+                    showCongratsSnackbar()
+                }
+
+                // --- UPDATE ANIMATION ---
+                // Animate the score card IN
+                scoreCard.alpha = 0f
+                scoreCard.translationY = 50f
+                scoreCard.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(400)
+                    .start()
+
                 // --- NEW: Schedule the UI to reset in 10 seconds ---
-                resetHandler.postDelayed(resetRunnable, 10000) // 10,000 milliseconds = 10 seconds
+                resetHandler.postDelayed(resetRunnable, 20000) // 10,000 milliseconds = 10 seconds
 
             }
         }
     }
+
+    // --- REPLACE the old showCongratsAnimation function with this new one ---
+    private fun showCongratsSnackbar() {
+        // A Snackbar provides a brief message at the bottom of the screen.
+        // It's guaranteed to be on top and handles its own appearance and dismissal.
+        Snackbar.make(mainLayout, getString(R.string.congrats_new_high_score), Snackbar.LENGTH_LONG).show()
+    }
+
+
+    // --- THIS IS THE UPDATED FUNCTION ---
+    private fun calculateScore(idBytes: ByteArray): Int {
+        // 1. Get a consistent integer from the card ID (same as before)
+        val paddedBytes = idBytes.copyOf(4)
+        val intValue = ByteBuffer.wrap(paddedBytes).int
+        val absValue = Math.abs(intValue.toLong()) // Use Long for safety
+
+        // 2. Get a linear "base value" from 0 to 999
+        val baseValue = absValue % 1000
+
+        // 3. Normalize this value to a Double between 0.0 and 1.0
+        val normalizedValue = baseValue / 999.0
+
+        // 4. Apply the exponential curve to skew the result towards 0.0
+        val skewedValue = normalizedValue.pow(SCORING_EXPONENT)
+
+        // 5. Scale the skewed value back up to the 0-999 range
+        val finalValue = skewedValue * 999
+
+        // 6. Convert to an integer and add 1 to get the final score (1-1000)
+        return finalValue.toInt() + 1
+    }
+    private fun loadHighScore() {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        highScore = prefs.getInt(PREF_KEY_HIGH_SCORE, 0)
+        highScoreValueText.text = highScore.toString()
+    }
+
+    private fun saveHighScore(score: Int) {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit {
+            putInt(PREF_KEY_HIGH_SCORE, score)
+        }
+    }
+
 
     // --- Add this new parsing function ---
     private fun parseTagInfo(tag: Tag): String {
