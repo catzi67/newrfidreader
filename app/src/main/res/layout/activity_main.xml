@@ -86,7 +86,7 @@
         app:cardBackgroundColor="#99212121"
         app:cardCornerRadius="12dp"
         app:cardElevation="8dp"
-        app:layout_constraintBottom_toTopOf="@+id/format_radio_group"
+        app:layout_constraintBottom_toTopOf="@+id/button_controls_layout"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/score_card">
@@ -97,30 +97,162 @@
             android:padding="16dp">
 
             <TextView
-                android:id="@+id/nfc_serial_number"
+                android:id="@+id/hex_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/label_hex"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+            <TextView
+                android:id="@+id/hex_value"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:gravity="center"
+                android:layout_marginStart="8dp"
+                android:gravity="end"
                 android:textColor="@android:color/white"
-                android:textSize="24sp"
+                android:textStyle="bold"
+                app:layout_constraintBaseline_toBaselineOf="@id/hex_label"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/hex_label"
+                tools:text="AA BB CC DD" />
+
+            <TextView
+                android:id="@+id/dec_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/label_dec"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/hex_label" />
+            <TextView
+                android:id="@+id/dec_value"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:gravity="end"
+                android:textColor="@android:color/white"
+                android:textStyle="bold"
+                app:layout_constraintBaseline_toBaselineOf="@id/dec_label"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/dec_label"
+                tools:text="1234567890" />
+
+            <TextView
+                android:id="@+id/bin_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/label_bin"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/dec_label" />
+            <TextView
+                android:id="@+id/bin_value"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:gravity="end"
+                android:textColor="@android:color/white"
+                android:textStyle="bold"
+                app:layout_constraintBaseline_toBaselineOf="@id/bin_label"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/bin_label"
+                tools:text="1010101010101010" />
+
+            <View
+                android:id="@+id/divider"
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_marginTop="16dp"
+                android:background="?attr/colorOnSurfaceVariant"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                tools:text="AA BB CC DD EE FF GG" />
+                app:layout_constraintTop_toBottomOf="@id/bin_value" />
+
+            <TextView
+                android:id="@+id/rev_hex_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/label_reversed_hex"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/divider" />
+            <TextView
+                android:id="@+id/rev_hex_value"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:gravity="end"
+                android:textColor="@android:color/white"
+                android:textStyle="bold"
+                app:layout_constraintBaseline_toBaselineOf="@id/rev_hex_label"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/rev_hex_label"
+                tools:text="DD CC BB AA" />
+
+            <TextView
+                android:id="@+id/rev_dec_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/label_reversed_dec"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/rev_hex_label" />
+            <TextView
+                android:id="@+id/rev_dec_value"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:gravity="end"
+                android:textColor="@android:color/white"
+                android:textStyle="bold"
+                app:layout_constraintBaseline_toBaselineOf="@id/rev_dec_label"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/rev_dec_label"
+                tools:text="987654321" />
+
+            <TextView
+                android:id="@+id/rev_bin_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/label_reversed_bin"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/rev_dec_label" />
+            <TextView
+                android:id="@+id/rev_bin_value"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:gravity="end"
+                android:textColor="@android:color/white"
+                android:textStyle="bold"
+                app:layout_constraintBaseline_toBaselineOf="@id/rev_bin_label"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/rev_bin_label"
+                tools:text="0101010101010101" />
 
             <TextView
                 android:id="@+id/nfc_tag_info"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="16dp"
                 android:gravity="center"
                 android:textColor="@android:color/white"
-                android:textSize="14sp"
+                android:textSize="12sp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/nfc_serial_number"
+                app:layout_constraintTop_toBottomOf="@id/rev_bin_value"
                 tools:text="Type: MIFARE Classic\nTechnologies: NfcA, MifareClassic" />
+
+
         </androidx.constraintlayout.widget.ConstraintLayout>
+
     </com.google.android.material.card.MaterialCardView>
 
     <com.google.android.material.card.MaterialCardView
@@ -171,49 +303,6 @@
             android:textSize="28sp" />
     </com.google.android.material.card.MaterialCardView>
 
-    <RadioGroup
-        android:id="@+id/format_radio_group"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginTop="24dp"
-        android:background="#99212121"
-        android:enabled="false"
-        android:gravity="center_horizontal"
-        android:orientation="horizontal"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp"
-        app:layout_constraintBottom_toTopOf="@+id/button_controls_layout"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/info_card">
-
-        <RadioButton
-            android:id="@+id/radio_hex"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:checked="true"
-            android:enabled="false"
-            android:text="@string/format_hex"
-            android:textColor="@android:color/white" />
-        <RadioButton
-            android:id="@+id/radio_dec"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:enabled="false"
-            android:text="@string/format_dec"
-            android:textColor="@android:color/white" />
-        <RadioButton
-            android:id="@+id/radio_bin"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:enabled="false"
-            android:text="@string/format_bin"
-            android:textColor="@android:color/white" />
-    </RadioGroup>
 
     <LinearLayout
         android:id="@+id/button_controls_layout"
@@ -224,20 +313,9 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/format_radio_group">
+        app:layout_constraintTop_toBottomOf="@+id/info_card">
 
-        <ImageButton
-            android:id="@+id/reverse_button"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/content_desc_reverse_button"
-            android:enabled="false"
-            android:padding="16dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_swap_horiz_24"
-            app:tint="@android:color/white" />
-        <ImageButton
+    <ImageButton
             android:id="@+id/history_button"
             android:layout_width="64dp"
             android:layout_height="64dp"

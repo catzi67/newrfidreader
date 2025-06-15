@@ -20,12 +20,13 @@
             android:id="@+id/serial_number_text"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
             android:textColor="?attr/colorOnSurface"
             android:textSize="16sp"
             android:textStyle="bold"
+            app:layout_constraintEnd_toStartOf="@id/share_history_button"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
             tools:text="SN: AA BB CC DD EE FF GG" />
 
         <TextView
@@ -50,6 +51,17 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/timestamp_text"
             tools:text="Type: MIFARE Classic\nTechnologies: NfcA, MifareClassic" />
+
+        <ImageButton
+            android:id="@+id/share_history_button"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/content_desc_share_button"
+            android:src="@drawable/ic_share_24"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="?attr/colorControlNormal" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

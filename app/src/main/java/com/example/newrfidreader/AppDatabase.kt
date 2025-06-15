@@ -5,7 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [ScannedCard::class], version = 1, exportSchema = false)
+@Database(entities = [ScannedCard::class], version = 2, exportSchema = false) // <-- Change version to 2
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun scannedCardDao(): ScannedCardDao
@@ -20,7 +20,9 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "nfc_app_database"
-                ).build()
+                )
+                    .fallbackToDestructiveMigration() // <-- ADD THIS LINE
+                    .build()
                 INSTANCE = instance
                 instance
             }

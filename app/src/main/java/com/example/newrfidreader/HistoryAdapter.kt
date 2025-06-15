@@ -1,8 +1,10 @@
 package com.example.newrfidreader
 
+import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -25,17 +27,44 @@ class HistoryAdapter : ListAdapter<ScannedCard, HistoryAdapter.CardViewHolder>(C
         private val serialNumberView: TextView = itemView.findViewById(R.id.serial_number_text)
         private val timestampView: TextView = itemView.findViewById(R.id.timestamp_text)
         private val tagInfoView: TextView = itemView.findViewById(R.id.tag_info_text)
+        private val shareButton: ImageButton = itemView.findViewById(R.id.share_history_button) // <-- NEW
 
         fun bind(card: ScannedCard) {
-            val context = itemView.context // Get context from the item view
-
-            // Pass the serial number as an argument to the formatted string resource
-            serialNumberView.text = context.getString(R.string.history_sn_formatted, card.serialNumberHex)
-
+            val context = itemView.context
+            //serialNumberView.text = "${context.getString(R.string.history_sn_formatted)} ${card.serialNumberHex}"
             tagInfoView.text = card.tagInfo
+            // --- WORKAROUND: Manually concatenate the strings in Kotlin ---
+            serialNumberView.text = "SN: " + card.serialNumberHex
+            timestampView.text = "Scanned: " + formatTimestamp(card.scanTimestamp)
 
-            // Pass the formatted timestamp as an argument
-            timestampView.text = context.getString(R.string.history_scanned_formatted, formatTimestamp(card.scanTimestamp))
+            //timestampView.text = "${context.getString(R.string.history_scanned_formatted)} ${formatTimestamp(card.scanTimestamp)}"
+
+            // --- NEW CLICK LISTENER ---
+            shareButton.setOnClickListener {
+                val shareText = """
+                    NFC Card Scan from History:
+                    Hex: ${card.serialNumberHex}
+                    Decimal: ${card.decValue}
+                    Binary: ${card.binValue}
+                    ---
+                    Reversed Hex: ${card.revHexValue}
+                    Reversed Dec: ${card.revDecValue}
+                    Reversed Bin: ${card.revBinValue}
+                    ---
+                    Score: ${card.score}
+                    ---
+                    ${card.tagInfo}
+                """.trimIndent()
+
+                val sendIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(Intent.EXTRA_TEXT, shareText)
+                    type = "text/plain"
+                }
+
+                val shareIntent = Intent.createChooser(sendIntent, "Share Card Details")
+                context.startActivity(shareIntent)
+            }
         }
 
         private fun formatTimestamp(timestamp: Long): String {

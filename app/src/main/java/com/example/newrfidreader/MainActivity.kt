@@ -1,449 +1,328 @@
 package com.example.newrfidreader
 
-import android.os.Build // <-- Make sure this import is present
+import android.app.PendingIntent
 import android.content.ClipData
 import android.content.ClipboardManager
-import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.nfc.NfcAdapter
 import android.nfc.Tag
+import android.nfc.tech.MifareClassic
+import android.nfc.tech.NfcA
+import android.os.Build
 import android.os.Bundle
-import android.widget.ImageButton // <-- Make sure this import is here
-import android.widget.RadioButton
-import android.widget.RadioGroup
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
+import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.constraintlayout.widget.ConstraintLayout
-import java.math.BigInteger
-import android.nfc.tech.MifareClassic
-import android.nfc.tech.NfcA
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.launch
-import com.google.android.material.floatingactionbutton.FloatingActionButton
-import androidx.core.net.toUri
 import androidx.core.content.edit
+import androidx.core.net.toUri
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.card.MaterialCardView
-import android.os.Handler
-import android.os.Looper
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowCompat
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.launch
+import java.math.BigInteger
 import java.nio.ByteBuffer
 import kotlin.math.abs
 import kotlin.math.pow
-import com.google.android.material.snackbar.Snackbar
-
 
 class MainActivity : AppCompatActivity() {
 
-    // --- NEW: A companion object for class-level constants ---
     companion object {
+        private const val TAG = "NFCApp"
         private const val PREFS_NAME = "NfcAppPrefs"
         private const val PREF_KEY_BACKGROUND_URI = "background_image_uri"
-        private const val PREF_KEY_HIGH_SCORE = "high_score" // <-- NEW KEY
-        private const val SCORING_EXPONENT = 8
+        private const val PREF_KEY_HIGH_SCORE = "high_score"
+        private const val SCORING_EXPONENT = 3.5
     }
 
-    private val database by lazy { (application as App).database.scannedCardDao() }
-
-    private var nfcAdapter: NfcAdapter? = null
-    private lateinit var nfcSerialNumberTextView: TextView
-    private lateinit var reverseButton: ImageButton
-    private lateinit var formatRadioGroup: RadioGroup
-    private lateinit var mainLayout: ConstraintLayout
-    private lateinit var historyButton: ImageButton // <-- ADD THIS
-    private lateinit var copyFab: FloatingActionButton // NEW
-    private lateinit var radioHex: RadioButton
-    private lateinit var radioDec: RadioButton
-    private lateinit var radioBin: RadioButton
+    // --- UI VIEW REFERENCES ---
+    private lateinit var mainLayout: androidx.constraintlayout.widget.ConstraintLayout
     private lateinit var infoCard: MaterialCardView
     private lateinit var promptCard: MaterialCardView
+    private lateinit var scoreCard: MaterialCardView
+    private lateinit var hexValue: TextView
+    private lateinit var decValue: TextView
+    private lateinit var binValue: TextView
+    private lateinit var revHexValue: TextView
+    private lateinit var revDecValue: TextView
+    private lateinit var revBinValue: TextView
+    private lateinit var nfcTagInfoTextView: TextView
+    private lateinit var scoreValueText: TextView
+    private lateinit var highScoreValueText: TextView
+    private lateinit var historyButton: ImageButton
+    private lateinit var shareButton: ImageButton
+    private lateinit var settingsButton: ImageButton
+    private lateinit var copyFab: FloatingActionButton
+
+    // --- State and Logic Variables ---
+    private var nfcAdapter: NfcAdapter? = null
     private val resetHandler = Handler(Looper.getMainLooper())
     private lateinit var resetRunnable: Runnable
-    private lateinit var scoreCard: MaterialCardView // <-- NEW
-    private lateinit var scoreValueText: TextView // <-- NEW
-    private lateinit var highScoreValueText: TextView // <-- NEW
-    private var highScore = 0 // <-- NEW
-    private lateinit var settingsButton: ImageButton // NEW
-    private var isReversed = false
-    private var originalSerialNumberBytes: ByteArray? = null
-    private var displayedSerialNumberBytes: ByteArray? = null
-    private lateinit var nfcTagInfoTextView: TextView // NEW
-    private enum class NumberFormat { HEX, DEC, BIN }
-    private var currentFormat = NumberFormat.HEX
-    private lateinit var shareButton: ImageButton // <-- NEW
+    private var highScore = 0
+    private val database by lazy { (application as App).database.scannedCardDao() }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // --- ADD THIS LINE FIRST ---
-        WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        nfcSerialNumberTextView = findViewById(R.id.nfc_serial_number)
-        reverseButton = findViewById(R.id.reverse_button)
-        formatRadioGroup = findViewById(R.id.format_radio_group)
-        historyButton = findViewById(R.id.history_button) // <-- ADD THIS
+        // Initialize all views
         mainLayout = findViewById(R.id.main_layout)
-        nfcTagInfoTextView = findViewById(R.id.nfc_tag_info) // NEW
-        copyFab = findViewById(R.id.fab_copy) // NEW: Initialize the FAB
-        infoCard = findViewById(R.id.info_card) // <-- NEW: Initialize the card view
-        promptCard = findViewById(R.id.prompt_card) // <-- NEW
-        mainLayout = findViewById(R.id.main_layout)
+        infoCard = findViewById(R.id.info_card)
+        promptCard = findViewById(R.id.prompt_card)
         scoreCard = findViewById(R.id.score_card)
+        hexValue = findViewById(R.id.hex_value)
+        decValue = findViewById(R.id.dec_value)
+        binValue = findViewById(R.id.bin_value)
+        revHexValue = findViewById(R.id.rev_hex_value)
+        revDecValue = findViewById(R.id.rev_dec_value)
+        revBinValue = findViewById(R.id.rev_bin_value)
+        nfcTagInfoTextView = findViewById(R.id.nfc_tag_info)
         scoreValueText = findViewById(R.id.score_value_text)
         highScoreValueText = findViewById(R.id.high_score_value_text)
-        settingsButton = findViewById(R.id.settings_button) // NEW
-        shareButton = findViewById(R.id.share_button) // <-- NEW
+        historyButton = findViewById(R.id.history_button)
+        shareButton = findViewById(R.id.share_button)
+        settingsButton = findViewById(R.id.settings_button)
+        copyFab = findViewById(R.id.fab_copy)
 
-        // Set the initial animated state for both cards
+        resetRunnable = Runnable { resetUI() }
+
+        // Set initial animated state
         infoCard.alpha = 0f
         promptCard.alpha = 0f
-        formatRadioGroup.alpha = 0f // <-- NEW
-        scoreCard.alpha = 0f // <-- NEW
+        scoreCard.alpha = 0f
 
-        // --- NEW: Load the high score on startup ---
         loadHighScore()
-
-        // --- NEW: Define what the reset Runnable does ---
-        resetRunnable = Runnable {
-            // This code will run after the delay
-            resetUI()
-        }
-
-
-        // Add these to get references to the individual radio buttons
-        radioHex = findViewById(R.id.radio_hex)
-        radioDec = findViewById(R.id.radio_dec)
-        radioBin = findViewById(R.id.radio_bin)
-
-        nfcAdapter = NfcAdapter.getDefaultAdapter(this)
-        if (nfcAdapter == null) {
-            Toast.makeText(this, getString(R.string.toast_nfc_not_available), Toast.LENGTH_LONG).show() // CHANGED
-            finish()
-            return
-
-        }
-
-        val historyButton: ImageButton = findViewById(R.id.history_button)
-
-        historyButton.setOnClickListener {
-            val intent = Intent(this, HistoryActivity::class.java)
-            startActivity(intent)
-        }
-
         setupButtonListeners()
-
-        // --- NEW: Load the saved background on startup ---
         resetUI()
-        loadSavedBackground()
-
-        // This listener will be called when the layout is ready, providing the system bar insets.
-        ViewCompat.setOnApplyWindowInsetsListener(mainLayout) { view, windowInsets ->
-        val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
-
-            // Apply the insets as padding to the view. This will push your content
-            // down from the status bar and up from the navigation bar.
-        view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
-
-            // Return a default value to signal that we've handled the insets.
-         WindowInsetsCompat.CONSUMED
-        }
-
-    }
-
-    private fun resetUI() {
-        //nfcSerialNumberTextView.text = getString(R.string.scan_prompt) // CHANGED
-        nfcTagInfoTextView.text = "" // Clear the tag info
-        setControlsEnabled(false)
-        copyFab.hide() // NEW: Hide the FAB when there's nothing to copy
-        // --- NEW ---
-        // Set the card's initial state for the animation: invisible and moved down
-        infoCard.alpha = 0f
-        infoCard.translationY = 50f // Move it down by 50 pixels
-
-        promptCard.animate()
-            .alpha(1f)
-            .setDuration(400)
-            .start()
-        // Animate the radio buttons OUT
-
-        formatRadioGroup.animate() // <-- NEW
-            .alpha(0f)
-            .setDuration(400)
-            .start()
-
-        // Animate the score card OUT
-        scoreCard.animate().alpha(0f).setDuration(400).start() // <-- NEW
-
-    }
-
-    private fun setupButtonListeners() {
-        reverseButton.setOnClickListener {
-            // --- ADD THESE TWO LINES ---
-            resetHandler.removeCallbacks(resetRunnable) // Cancel the old timer
-            resetHandler.postDelayed(resetRunnable, 20000) // Start a new one
-
-            if (originalSerialNumberBytes == null) return@setOnClickListener
-
-            isReversed = !isReversed
-
-            if (isReversed) {
-                displayedSerialNumberBytes = originalSerialNumberBytes?.reversedArray()
-                reverseButton.setImageResource(R.drawable.ic_undo_24)
-            } else {
-                displayedSerialNumberBytes = originalSerialNumberBytes
-                reverseButton.setImageResource(R.drawable.ic_swap_horiz_24)
-            }
-            displaySerialNumber()
-        }
-
-        formatRadioGroup.setOnCheckedChangeListener { _, checkedId ->
-            // --- ADD THESE TWO LINES ---
-            resetHandler.removeCallbacks(resetRunnable) // Cancel the old timer
-            resetHandler.postDelayed(resetRunnable, 20000) // Start a new one
-
-            currentFormat = when (checkedId) {
-                R.id.radio_dec -> NumberFormat.DEC
-                R.id.radio_bin -> NumberFormat.BIN
-                else -> NumberFormat.HEX
-            }
-            isReversed = false
-            reverseButton.setImageResource(R.drawable.ic_swap_horiz_24)
-            displayedSerialNumberBytes = originalSerialNumberBytes
-            displaySerialNumber()
-        }
-
-        historyButton.setOnClickListener {
-            val intent = Intent(this, HistoryActivity::class.java)
-            startActivity(intent)
-        }
-
-        // --- ENSURE THIS BLOCK OF CODE IS PRESENT ---
-        settingsButton.setOnClickListener {
-            val intent = Intent(this, SettingsActivity::class.java)
-            startActivity(intent)
-        }
-
-        shareButton.setOnClickListener {
-            val serialNumber = nfcSerialNumberTextView.text.toString()
-            val tagInfo = nfcTagInfoTextView.text.toString()
-            val score = scoreValueText.text.toString()
-
-            // Build the text to be shared
-            val shareText = """
-                NFC Card Details:
-                - Serial Number: $serialNumber
-                - Score: $score
-                - High Score: $highScore
-                --------------------
-                $tagInfo
-            """.trimIndent()
-
-            // Create the share intent
-            val sendIntent = Intent().apply {
-                action = Intent.ACTION_SEND
-                putExtra(Intent.EXTRA_TEXT, shareText)
-                type = "text/plain"
-            }
-
-            // Create a chooser to show the share sheet
-            val shareIntent = Intent.createChooser(sendIntent, "Share Card Details")
-            startActivity(shareIntent)
-        }
-
-        // NEW: Add a listener for our new FAB
-        copyFab.setOnClickListener {
-            // --- ADD THESE TWO LINES ---
-            resetHandler.removeCallbacks(resetRunnable) // Cancel the old timer
-            resetHandler.postDelayed(resetRunnable, 20000) // Start a new one
-
-            val serialNumber = nfcSerialNumberTextView.text.toString()
-            if (serialNumber.isNotBlank() && serialNumber != "Scan an RFID Card") {
-                val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-                val clip = ClipData.newPlainText("RFID Serial Number", serialNumber)
-                clipboard.setPrimaryClip(clip)
-
-                // Give the user feedback
-                Toast.makeText(this, getString(R.string.toast_copied_to_clipboard), Toast.LENGTH_SHORT).show() // CHANGED
-
-            }
-        }
     }
 
     override fun onResume() {
         super.onResume()
+        // Refresh UI in case settings were changed
         loadHighScore()
         loadSavedBackground()
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0, Intent(this, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
-            PendingIntent.FLAG_MUTABLE
-        )
-        nfcAdapter?.enableForegroundDispatch(this, pendingIntent, null, null)
+        setupForegroundDispatch()
     }
-
-
 
     override fun onPause() {
         super.onPause()
         nfcAdapter?.disableForegroundDispatch(this)
-
-        // --- NEW: Cancel any pending reset if the user leaves the activity ---
         resetHandler.removeCallbacks(resetRunnable)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        Log.d(TAG, "onNewIntent received with action: ${intent.action}")
         if (NfcAdapter.ACTION_TAG_DISCOVERED == intent.action) {
-
-            // --- NEW: Cancel any previous timer when a new card is scanned ---
-            resetHandler.removeCallbacks(resetRunnable)
-
-            val tag: Tag? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                // Use the new, type-safe method for Android 13 (API 33) and higher
-                intent.getParcelableExtra(NfcAdapter.EXTRA_TAG, Tag::class.java)
-            } else {
-                // Use the old, deprecated method for older versions
-                @Suppress("DEPRECATION")
-                intent.getParcelableExtra(NfcAdapter.EXTRA_TAG)
-            }
-
-            // --- The rest of the function remains the same ---
-
-            tag?.let {
-                // --- This is the new part ---
-                val tagInfo = parseTagInfo(it)
-                nfcTagInfoTextView.text = tagInfo
-
-                originalSerialNumberBytes = it.id
-                val serialNumber = it.id.toHexString() // Get hex string for saving
-
-                displayedSerialNumberBytes = originalSerialNumberBytes
-                isReversed = false
-                reverseButton.setImageResource(R.drawable.ic_swap_horiz_24)
-                displaySerialNumber()
-                setControlsEnabled(true)
-                copyFab.show() // NEW: Show the FAB now that there is data
-
-
-                // --- UPDATED ANIMATION LOGIC (A "Cross-fade") ---
-                // Hide the prompt card
-                promptCard.animate()
-                    .alpha(0f)
-                    .setDuration(400)
-                    .start()
-
-                // Show the details card
-                infoCard.alpha = 0f // Reset before animating
-                infoCard.translationY = 50f
-                // --- NEW ---
-                // Animate the card view to its final state
-                infoCard.animate()
-                    .alpha(1f) // Fade in to full opacity
-                    .translationY(0f) // Move it back to its original Y position
-                    .setDuration(400) // Animation duration in milliseconds
-                    .start()
-
-                // Animate the radio buttons IN
-                formatRadioGroup.animate() // <-- NEW
-                    .alpha(1f)
-                    .setDuration(400)
-                    .start()
-
-
-                // --- SAVE TO DATABASE ---
-                val cardToSave = ScannedCard(
-                    serialNumberHex = serialNumber,
-                    tagInfo = tagInfo,
-                    scanTimestamp = System.currentTimeMillis()
-                )
-                lifecycleScope.launch {
-                    database.insert(cardToSave)
-                }
-
-                // --- NEW SCORING LOGIC ---
-                val score = calculateScore(it.id)
-                scoreValueText.text = score.toString()
-
-                if (score > highScore) {
-                    highScore = score
-                    saveHighScore(highScore)
-                    highScoreValueText.text = highScore.toString()
-
-                    // Trigger the congratulations animation
-                    showCongratsSnackbar()
-                }
-
-                // --- UPDATE ANIMATION ---
-                // Animate the score card IN
-                scoreCard.alpha = 0f
-                scoreCard.translationY = 50f
-                scoreCard.animate()
-                    .alpha(1f)
-                    .translationY(0f)
-                    .setDuration(400)
-                    .start()
-
-                // --- NEW: Schedule the UI to reset in 10 seconds ---
-                resetHandler.postDelayed(resetRunnable, 20000) // 10,000 milliseconds = 10 seconds
-
-            }
+            handleNfcTag(intent)
         }
     }
 
-    // --- REPLACE the old showCongratsAnimation function with this new one ---
+    private fun setupForegroundDispatch() {
+        nfcAdapter = NfcAdapter.getDefaultAdapter(this)
+        if (nfcAdapter == null) {
+            Toast.makeText(this, getString(R.string.toast_nfc_not_available), Toast.LENGTH_LONG).show()
+            return
+        }
+        val intent = Intent(this, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+
+        // The flag MUST be FLAG_MUTABLE so the NFC system can add the tag data to the intent.
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            intent,
+            PendingIntent.FLAG_MUTABLE
+        )
+
+        nfcAdapter?.enableForegroundDispatch(this, pendingIntent, null, null)
+    }
+
+    private fun handleNfcTag(intent: Intent) {
+        resetHandler.removeCallbacks(resetRunnable)
+
+        val tag: Tag? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra(NfcAdapter.EXTRA_TAG, Tag::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra(NfcAdapter.EXTRA_TAG)
+        }
+
+        tag?.let {
+            // --- PRIMARY LOGIC ---
+            val originalBytes = it.id
+            val reversedBytes = originalBytes.reversedArray()
+
+            hexValue.text = bytesToHexString(originalBytes)
+            decValue.text = bytesToDecString(originalBytes)
+            binValue.text = bytesToBinString(originalBytes)
+            revHexValue.text = bytesToHexString(reversedBytes)
+            revDecValue.text = bytesToDecString(reversedBytes)
+            revBinValue.text = bytesToBinString(reversedBytes)
+
+            val tagInfo = parseTagInfo(it)
+            nfcTagInfoTextView.text = tagInfo
+
+            val score = calculateScore(originalBytes)
+            scoreValueText.text = score.toString()
+            if (score > highScore) {
+                highScore = score
+                saveHighScore(highScore)
+                highScoreValueText.text = highScore.toString()
+                showCongratsSnackbar()
+            }
+
+            // --- SAVE TO DB ---
+            lifecycleScope.launch {
+                database.insert(
+                    ScannedCard(
+                        serialNumberHex = hexValue.text.toString(),
+                        decValue = decValue.text.toString(),
+                        binValue = binValue.text.toString(),
+                        revHexValue = revHexValue.text.toString(),
+                        revDecValue = revDecValue.text.toString(),
+                        revBinValue = revBinValue.text.toString(),
+                        score = score,
+                        tagInfo = tagInfo,
+                        scanTimestamp = System.currentTimeMillis()                    )
+                )
+            }
+
+            // --- UPDATE UI ---
+            promptCard.animate().alpha(0f).setDuration(400).start()
+            infoCard.animate().alpha(1f).translationY(0f).setDuration(400).start()
+            scoreCard.animate().alpha(1f).translationY(0f).setDuration(400).start()
+
+            setControlsEnabled(true)
+            copyFab.show()
+            resetHandler.postDelayed(resetRunnable, 10000)
+        }
+    }
+
+    private fun setupButtonListeners() {
+        historyButton.setOnClickListener {
+            startActivity(Intent(this, HistoryActivity::class.java))
+        }
+
+        settingsButton.setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
+
+        shareButton.setOnClickListener {
+            val shareText = """
+                NFC Card Scan:
+                Hex: ${hexValue.text}
+                Decimal: ${decValue.text}
+                Binary: ${binValue.text}
+                ---
+                Reversed Hex: ${revHexValue.text}
+                Reversed Dec: ${revDecValue.text}
+                Reversed Bin: ${revBinValue.text}
+                ---
+                Score: ${scoreValueText.text} (High: $highScore)
+                ---
+                ${nfcTagInfoTextView.text}
+            """.trimIndent()
+
+            val sendIntent = Intent().apply {
+                action = Intent.ACTION_SEND
+                putExtra(Intent.EXTRA_TEXT, shareText)
+                type = "text/plain"
+            }
+            val shareIntent = Intent.createChooser(sendIntent, "Share Card Details")
+            startActivity(shareIntent)
+        }
+
+        copyFab.setOnClickListener {
+            resetHandler.removeCallbacks(resetRunnable)
+            resetHandler.postDelayed(resetRunnable, 10000)
+
+            val textToCopy = "Hex: ${hexValue.text}\nDecimal: ${decValue.text}"
+            val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+            val clip = ClipData.newPlainText("RFID Data", textToCopy)
+            clipboard.setPrimaryClip(clip)
+            Toast.makeText(this, getString(R.string.toast_copied_to_clipboard), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun setControlsEnabled(isEnabled: Boolean) {
+        shareButton.isEnabled = isEnabled
+    }
+
+    private fun resetUI() {
+        // Clear all text fields
+        hexValue.text = ""
+        decValue.text = ""
+        binValue.text = ""
+        revHexValue.text = ""
+        revDecValue.text = ""
+        revBinValue.text = ""
+        scoreValueText.text = ""
+        nfcTagInfoTextView.text = ""
+
+        setControlsEnabled(false)
+        copyFab.hide()
+
+        // Hide data cards and show the prompt card
+        infoCard.animate().alpha(0f).setDuration(400).start()
+        scoreCard.animate().alpha(0f).setDuration(400).start()
+        promptCard.animate().alpha(1f).setDuration(400).start()
+    }
+
+    // --- Helper and Calculation Functions ---
     private fun showCongratsSnackbar() {
-        // A Snackbar provides a brief message at the bottom of the screen.
-        // It's guaranteed to be on top and handles its own appearance and dismissal.
         Snackbar.make(mainLayout, getString(R.string.congrats_new_high_score), Snackbar.LENGTH_LONG).show()
     }
 
-
-    // --- THIS IS THE UPDATED FUNCTION ---
-    private fun calculateScore(idBytes: ByteArray): Int {
-        // 1. Get a consistent integer from the card ID (same as before)
-        val paddedBytes = idBytes.copyOf(4)
-        val intValue = ByteBuffer.wrap(paddedBytes).int
-        val absValue = abs(intValue.toLong()) // Use Long for safety
-
-        // 2. Get a linear "base value" from 0 to 999
-        val baseValue = absValue % 1000
-
-        // 3. Normalize this value to a Double between 0.0 and 1.0
-        val normalizedValue = baseValue / 999.0
-
-        // 4. Apply the exponential curve to skew the result towards 0.0
-        val skewedValue = normalizedValue.pow(SCORING_EXPONENT)
-
-        // 5. Scale the skewed value back up to the 0-999 range
-        val finalValue = skewedValue * 999
-
-        // 6. Convert to an integer and add 1 to get the final score (1-1000)
-        return finalValue.toInt() + 1
-    }
     private fun loadHighScore() {
-        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         highScore = prefs.getInt(PREF_KEY_HIGH_SCORE, 0)
         highScoreValueText.text = highScore.toString()
     }
 
     private fun saveHighScore(score: Int) {
-        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        prefs.edit {
-            putInt(PREF_KEY_HIGH_SCORE, score)
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit { putInt(PREF_KEY_HIGH_SCORE, score) }
+    }
+
+    private fun loadSavedBackground() {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val uriString = prefs.getString(PREF_KEY_BACKGROUND_URI, null)
+        if (uriString != null) {
+            try {
+                val uri = uriString.toUri()
+                loadBackgroundFromUri(uri)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(this, getString(R.string.toast_failed_to_load_saved_background), Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
+    private fun loadBackgroundFromUri(uri: Uri) {
+        try {
+            val inputStream = contentResolver.openInputStream(uri)
+            val drawable = Drawable.createFromStream(inputStream, uri.toString())
+            mainLayout.background = drawable
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, getString(R.string.toast_failed_to_load_image), Toast.LENGTH_SHORT).show()
+        }
+    }
 
-    // --- Add this new parsing function ---
+    @Suppress("SpellCheckingInspection")
     private fun parseTagInfo(tag: Tag): String {
         val sb = StringBuilder()
         val techList = tag.techList.map { it.substringAfterLast('.') }
         sb.append("Technologies: ").append(techList.joinToString(", ")).append("\n")
 
-        // Check for specific technologies and extract more detailed info
         for (tech in techList) {
             when (tech) {
                 "MifareClassic" -> {
@@ -454,15 +333,13 @@ class MainActivity : AppCompatActivity() {
                             MifareClassic.TYPE_PRO -> "MIFARE Pro"
                             else -> "Unknown MIFARE"
                         }
-                        sb.append("Type: ").append(type).append("\n")
-                        sb.append("Size: ").append(mifare.size).append(" bytes\n")
-                        sb.append("Sectors: ").append(mifare.sectorCount).append("\n")
+                        sb.append("Type: ").append(type)
                     }
                 }
                 "NfcA" -> {
                     NfcA.get(tag)?.use { nfcA ->
-                        sb.append("ATQA: 0x").append(nfcA.atqa.toHexString()).append("\n")
-                        sb.append("SAK: 0x").append(Integer.toHexString(nfcA.sak.toInt())).append("\n")
+                        sb.append("\nATQA: 0x").append(bytesToHexString(nfcA.atqa))
+                        sb.append(" | SAK: 0x").append(Integer.toHexString(nfcA.sak.toInt()))
                     }
                 }
             }
@@ -470,57 +347,15 @@ class MainActivity : AppCompatActivity() {
         return sb.toString().trim()
     }
 
-    // --- Add this helper extension function for converting bytes to hex ---
-    private fun ByteArray.toHexString(): String = joinToString("") { "%02X".format(it) }
-
-
-
-    // --- NEW: Helper function to load the saved background URI ---
-    private fun loadSavedBackground() {
-        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        val uriString = prefs.getString(PREF_KEY_BACKGROUND_URI, null)
-        if (uriString != null) {
-            try {
-                // BEFORE: val uri = Uri.parse(uriString)
-                // AFTER:
-                val uri = uriString.toUri() // This is the change
-
-                loadBackgroundFromUri(uri)
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(this, getString(R.string.toast_failed_to_load_saved_background), Toast.LENGTH_SHORT).show() // CHANGED
-
-            }
-        }
-    }
-
-    // --- NEW: Refactored image loading logic into its own function ---
-    private fun loadBackgroundFromUri(uri: Uri) {
-        val inputStream = contentResolver.openInputStream(uri)
-        val drawable = Drawable.createFromStream(inputStream, uri.toString())
-        mainLayout.background = drawable
-    }
-
-    // --- Add this new helper function ---
-    private fun setControlsEnabled(isEnabled: Boolean) {
-        reverseButton.isEnabled = isEnabled
-        formatRadioGroup.isEnabled = isEnabled
-        radioHex.isEnabled = isEnabled
-        radioDec.isEnabled = isEnabled
-        radioBin.isEnabled = isEnabled
-        shareButton.isEnabled = isEnabled
-
-    }
-
-    private fun displaySerialNumber() {
-        displayedSerialNumberBytes?.let { bytes ->
-            val numberAsString = when (currentFormat) {
-                NumberFormat.HEX -> bytesToHexString(bytes)
-                NumberFormat.DEC -> bytesToDecString(bytes)
-                NumberFormat.BIN -> bytesToBinString(bytes)
-            }
-            nfcSerialNumberTextView.text = numberAsString
-        }
+    private fun calculateScore(idBytes: ByteArray): Int {
+        val paddedBytes = idBytes.copyOf(4)
+        val intValue = ByteBuffer.wrap(paddedBytes).int
+        val absValue = abs(intValue.toLong())
+        val baseValue = absValue % 1000
+        val normalizedValue = baseValue / 999.0
+        val skewedValue = normalizedValue.pow(SCORING_EXPONENT)
+        val finalValue = skewedValue * 999
+        return finalValue.toInt() + 1
     }
 
     private fun bytesToHexString(bytes: ByteArray): String {
