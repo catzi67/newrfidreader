@@ -3,9 +3,7 @@ package com.example.newrfidreader
 import android.os.Build // <-- Make sure this import is present
 import android.content.ClipData
 import android.content.ClipboardManager
-// import android.content.Context.CLIPBOARD_SERVICE
 import android.app.PendingIntent
-// import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.net.Uri
@@ -34,9 +32,9 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowCompat
 import java.nio.ByteBuffer
-import kotlin.math.abs // <-- Make sure this import is present
-import kotlin.math.pow // <-- NEW IMPORT
-import com.google.android.material.snackbar.Snackbar // <-- NEW IMPORT
+import kotlin.math.abs
+import kotlin.math.pow
+import com.google.android.material.snackbar.Snackbar
 
 
 class MainActivity : AppCompatActivity() {
@@ -70,16 +68,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var highScoreValueText: TextView // <-- NEW
     private var highScore = 0 // <-- NEW
     private lateinit var settingsButton: ImageButton // NEW
-
     private var isReversed = false
     private var originalSerialNumberBytes: ByteArray? = null
     private var displayedSerialNumberBytes: ByteArray? = null
-
     private lateinit var nfcTagInfoTextView: TextView // NEW
-
     private enum class NumberFormat { HEX, DEC, BIN }
     private var currentFormat = NumberFormat.HEX
-
+    private lateinit var shareButton: ImageButton // <-- NEW
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // --- ADD THIS LINE FIRST ---
@@ -101,6 +96,7 @@ class MainActivity : AppCompatActivity() {
         scoreValueText = findViewById(R.id.score_value_text)
         highScoreValueText = findViewById(R.id.high_score_value_text)
         settingsButton = findViewById(R.id.settings_button) // NEW
+        shareButton = findViewById(R.id.share_button) // <-- NEW
 
         // Set the initial animated state for both cards
         infoCard.alpha = 0f
@@ -229,6 +225,33 @@ class MainActivity : AppCompatActivity() {
         settingsButton.setOnClickListener {
             val intent = Intent(this, SettingsActivity::class.java)
             startActivity(intent)
+        }
+
+        shareButton.setOnClickListener {
+            val serialNumber = nfcSerialNumberTextView.text.toString()
+            val tagInfo = nfcTagInfoTextView.text.toString()
+            val score = scoreValueText.text.toString()
+
+            // Build the text to be shared
+            val shareText = """
+                NFC Card Details:
+                - Serial Number: $serialNumber
+                - Score: $score
+                - High Score: $highScore
+                --------------------
+                $tagInfo
+            """.trimIndent()
+
+            // Create the share intent
+            val sendIntent = Intent().apply {
+                action = Intent.ACTION_SEND
+                putExtra(Intent.EXTRA_TEXT, shareText)
+                type = "text/plain"
+            }
+
+            // Create a chooser to show the share sheet
+            val shareIntent = Intent.createChooser(sendIntent, "Share Card Details")
+            startActivity(shareIntent)
         }
 
         // NEW: Add a listener for our new FAB
@@ -485,6 +508,8 @@ class MainActivity : AppCompatActivity() {
         radioHex.isEnabled = isEnabled
         radioDec.isEnabled = isEnabled
         radioBin.isEnabled = isEnabled
+        shareButton.isEnabled = isEnabled
+
     }
 
     private fun displaySerialNumber() {

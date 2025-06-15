@@ -33,7 +33,7 @@
                 android:id="@+id/score_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Card Score"
+                android:text="@string/score_card_title"
                 android:textColor="?attr/colorOnSecondaryContainer"
                 android:textSize="16sp"
                 app:layout_constraintStart_toStartOf="parent"
@@ -55,7 +55,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="High Score:"
+                android:text="@string/high_score_label"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="14sp"
                 app:layout_constraintStart_toStartOf="parent"
@@ -247,6 +247,18 @@
             android:padding="16dp"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_history_24"
+            app:tint="@android:color/white" />
+        <ImageButton
+            android:id="@+id/share_button"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_marginStart="24dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/content_desc_share_button"
+            android:enabled="false"
+            android:padding="16dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_share_24"
             app:tint="@android:color/white" />
         <ImageButton
             android:id="@+id/settings_button"
