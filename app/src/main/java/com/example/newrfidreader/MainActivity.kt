@@ -3,8 +3,9 @@ package com.example.newrfidreader
 import android.os.Build // <-- Make sure this import is present
 import android.content.ClipData
 import android.content.ClipboardManager
+// import android.content.Context.CLIPBOARD_SERVICE
 import android.app.PendingIntent
-import android.content.Context
+// import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.net.Uri
@@ -16,7 +17,6 @@ import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import java.math.BigInteger
@@ -34,6 +34,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowCompat
 import java.nio.ByteBuffer
+import kotlin.math.abs // <-- Make sure this import is present
 import kotlin.math.pow // <-- NEW IMPORT
 import com.google.android.material.snackbar.Snackbar // <-- NEW IMPORT
 
@@ -45,7 +46,7 @@ class MainActivity : AppCompatActivity() {
         private const val PREFS_NAME = "NfcAppPrefs"
         private const val PREF_KEY_BACKGROUND_URI = "background_image_uri"
         private const val PREF_KEY_HIGH_SCORE = "high_score" // <-- NEW KEY
-        private const val SCORING_EXPONENT = 4
+        private const val SCORING_EXPONENT = 8
     }
 
     private val database by lazy { (application as App).database.scannedCardDao() }
@@ -79,29 +80,6 @@ class MainActivity : AppCompatActivity() {
     private enum class NumberFormat { HEX, DEC, BIN }
     private var currentFormat = NumberFormat.HEX
 
-    private val photoPickerLauncher = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) {
-            // --- MODIFIED: Added saving logic ---
-            try {
-                // Take persistent permission to access this URI across app restarts
-                val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                contentResolver.takePersistableUriPermission(uri, flags)
-
-                // Save the URI string to SharedPreferences
-                saveBackgroundUri(uri.toString())
-
-                // Load the image into the background
-                loadBackgroundFromUri(uri)
-
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(this, getString(R.string.toast_failed_to_load_image), Toast.LENGTH_SHORT).show() // CHANGED
-            }
-        } else {
-            Toast.makeText(this, getString(R.string.toast_no_image_selected), Toast.LENGTH_SHORT).show() // CHANGED
-
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // --- ADD THIS LINE FIRST ---
@@ -261,7 +239,7 @@ class MainActivity : AppCompatActivity() {
 
             val serialNumber = nfcSerialNumberTextView.text.toString()
             if (serialNumber.isNotBlank() && serialNumber != "Scan an RFID Card") {
-                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
                 val clip = ClipData.newPlainText("RFID Serial Number", serialNumber)
                 clipboard.setPrimaryClip(clip)
 
@@ -405,7 +383,7 @@ class MainActivity : AppCompatActivity() {
         // 1. Get a consistent integer from the card ID (same as before)
         val paddedBytes = idBytes.copyOf(4)
         val intValue = ByteBuffer.wrap(paddedBytes).int
-        val absValue = Math.abs(intValue.toLong()) // Use Long for safety
+        val absValue = abs(intValue.toLong()) // Use Long for safety
 
         // 2. Get a linear "base value" from 0 to 999
         val baseValue = absValue % 1000
@@ -423,13 +401,13 @@ class MainActivity : AppCompatActivity() {
         return finalValue.toInt() + 1
     }
     private fun loadHighScore() {
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         highScore = prefs.getInt(PREF_KEY_HIGH_SCORE, 0)
         highScoreValueText.text = highScore.toString()
     }
 
     private fun saveHighScore(score: Int) {
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         prefs.edit {
             putInt(PREF_KEY_HIGH_SCORE, score)
         }
@@ -476,7 +454,7 @@ class MainActivity : AppCompatActivity() {
 
     // --- NEW: Helper function to load the saved background URI ---
     private fun loadSavedBackground() {
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         val uriString = prefs.getString(PREF_KEY_BACKGROUND_URI, null)
         if (uriString != null) {
             try {
@@ -490,16 +468,6 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, getString(R.string.toast_failed_to_load_saved_background), Toast.LENGTH_SHORT).show() // CHANGED
 
             }
-        }
-    }
-
-    // --- NEW: Helper function to save the background URI string ---
-    private fun saveBackgroundUri(uriString: String) {
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        // The KTX version is cleaner and safer.
-        // It automatically handles the .apply() call.
-        prefs.edit {
-            putString(PREF_KEY_BACKGROUND_URI, uriString)
         }
     }
 
