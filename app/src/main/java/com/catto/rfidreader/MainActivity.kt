@@ -1,9 +1,8 @@
-package com.example.newrfidreader
+package com.catto.rfidreader
 
 import android.app.PendingIntent
 import android.content.ClipData
 import android.content.ClipboardManager
-import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.net.Uri
@@ -156,21 +155,27 @@ class MainActivity : AppCompatActivity() {
         }
 
         tag?.let {
-            // --- PRIMARY LOGIC ---
-            val originalBytes = it.id
-            val reversedBytes = originalBytes.reversedArray()
+            // --- THIS IS THE UPDATED LOGIC ---
 
-            hexValue.text = bytesToHexString(originalBytes)
-            decValue.text = bytesToDecString(originalBytes)
-            binValue.text = bytesToBinString(originalBytes)
-            revHexValue.text = bytesToHexString(reversedBytes)
-            revDecValue.text = bytesToDecString(reversedBytes)
-            revBinValue.text = bytesToBinString(reversedBytes)
+            // The raw tag ID is typically Little-Endian. This is our "Reversed" value.
+            val littleEndianBytes = it.id
+            // Reversing the byte order gives us the standard Big-Endian value for our "Forward" value.
+            val bigEndianBytes = littleEndianBytes.reversedArray()
+
+            // Populate the UI according to the new definitions
+            hexValue.text = bytesToHexString(bigEndianBytes)
+            decValue.text = bytesToDecString(bigEndianBytes)
+            binValue.text = bytesToBinString(bigEndianBytes)
+
+            revHexValue.text = bytesToHexString(littleEndianBytes)
+            revDecValue.text = bytesToDecString(littleEndianBytes)
+            revBinValue.text = bytesToBinString(littleEndianBytes)
 
             val tagInfo = parseTagInfo(it)
             nfcTagInfoTextView.text = tagInfo
 
-            val score = calculateScore(originalBytes)
+            // The score should be calculated from the standard Big-Endian value
+            val score = calculateScore(bigEndianBytes)
             scoreValueText.text = score.toString()
             if (score > highScore) {
                 highScore = score
@@ -180,18 +185,20 @@ class MainActivity : AppCompatActivity() {
             }
 
             // --- SAVE TO DB ---
+            // We will save the standard Big-Endian representation as the primary value.
             lifecycleScope.launch {
                 database.insert(
                     ScannedCard(
-                        serialNumberHex = hexValue.text.toString(),
+                        serialNumberHex = hexValue.text.toString(), // Big-Endian
                         decValue = decValue.text.toString(),
                         binValue = binValue.text.toString(),
-                        revHexValue = revHexValue.text.toString(),
+                        revHexValue = revHexValue.text.toString(), // Little-Endian
                         revDecValue = revDecValue.text.toString(),
                         revBinValue = revBinValue.text.toString(),
                         score = score,
                         tagInfo = tagInfo,
-                        scanTimestamp = System.currentTimeMillis()                    )
+                        scanTimestamp = System.currentTimeMillis()
+                    )
                 )
             }
 
@@ -282,18 +289,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadHighScore() {
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         highScore = prefs.getInt(PREF_KEY_HIGH_SCORE, 0)
         highScoreValueText.text = highScore.toString()
     }
 
     private fun saveHighScore(score: Int) {
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         prefs.edit { putInt(PREF_KEY_HIGH_SCORE, score) }
     }
 
     private fun loadSavedBackground() {
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         val uriString = prefs.getString(PREF_KEY_BACKGROUND_URI, null)
         if (uriString != null) {
             try {
@@ -317,7 +324,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    @Suppress("SpellCheckingInspection")
     private fun parseTagInfo(tag: Tag): String {
         val sb = StringBuilder()
         val techList = tag.techList.map { it.substringAfterLast('.') }

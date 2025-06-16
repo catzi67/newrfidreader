@@ -1,4 +1,4 @@
-package com.example.newrfidreader
+package com.catto.rfidreader
 
 import android.app.Application
 

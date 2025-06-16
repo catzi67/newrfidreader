@@ -7,15 +7,15 @@ plugins {
 }
 
 android {
-    namespace = "com.example.newrfidreader"
+    namespace = "com.catto.rfidreader"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.newrfidreader"
+        applicationId = "com.catto.rfidreader"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -27,6 +27,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // --- ADD THIS BLOCK ---
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE"
+            }
         }
     }
     compileOptions {

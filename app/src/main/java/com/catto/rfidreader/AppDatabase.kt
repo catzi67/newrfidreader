@@ -1,4 +1,4 @@
-package com.example.newrfidreader
+package com.catto.rfidreader
 
 import android.content.Context
 import androidx.room.Database
@@ -21,7 +21,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "nfc_app_database"
                 )
-                    .fallbackToDestructiveMigration() // <-- ADD THIS LINE
+                    .fallbackToDestructiveMigration(true) // <-- ADD THIS LINE
                     .build()
                 INSTANCE = instance
                 instance

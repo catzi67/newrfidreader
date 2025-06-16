@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">RFID Reader</string>
-
     <string name="scan_prompt">Scan an RFID Card</string>
     <string name="score_card_title">Card Score</string>
     <string name="high_score_label">High Score:</string>
@@ -10,7 +9,6 @@
     <string name="label_reversed_hex">Reversed Hex:</string>
     <string name="label_reversed_dec">Reversed Dec:</string>
     <string name="label_reversed_bin">Reversed Bin:</string>
-
     <string name="content_desc_reverse_button">Reverse Serial Number</string>
     <string name="content_desc_select_background_button">Select Background Image</string>
     <string name="content_desc_history_button">View Scan History</string>
@@ -19,10 +17,8 @@
     <string name="content_desc_reset_score_button">Reset High Score</string>
     <string name="content_desc_settings_button">Settings</string>
     <string name="content_desc_share_from_history">Share this scan\'s details</string>
-
     <string name="history_sn_formatted">SN: %1$s</string>
     <string name="history_scanned_formatted">Scanned: %1$s</string>
-
     <string name="toast_nfc_not_available">NFC is not available on this device.</string>
     <string name="toast_failed_to_load_image">Failed to load image</string>
     <string name="toast_no_image_selected">No image selected</string>
@@ -30,5 +26,4 @@
     <string name="toast_failed_to_load_saved_background">Failed to load saved background</string>
     <string name="toast_high_score_reset">High score has been reset</string>
     <string name="congrats_new_high_score">Congratulations! You\'ve set a new high score!</string>
-
 </resources>

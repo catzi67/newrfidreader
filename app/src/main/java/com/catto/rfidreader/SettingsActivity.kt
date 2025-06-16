@@ -1,4 +1,4 @@
-package com.example.newrfidreader
+package com.catto.rfidreader
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
