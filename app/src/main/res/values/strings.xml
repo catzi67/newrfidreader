@@ -26,4 +26,7 @@
     <string name="toast_failed_to_load_saved_background">Failed to load saved background</string>
     <string name="toast_high_score_reset">High score has been reset</string>
     <string name="congrats_new_high_score">Congratulations! You\'ve set a new high score!</string>
+    <string name="pref_title_reset_background">Reset to default background</string>
+    <string name="pref_summary_reset_background">Removes the custom background image</string>
+    <string name="toast_background_reset">Background reset. Re-open the main screen to see the change.</string>
 </resources>

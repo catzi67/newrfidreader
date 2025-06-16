@@ -9,6 +9,10 @@
             android:title="Choose background image"
             android:summary="Select a custom image from your device"/>
 
+        <Preference
+            android:key="pref_key_reset_background"
+            android:title="@string/pref_title_reset_background"
+            android:summary="@string/pref_summary_reset_background"/>
     </PreferenceCategory>
 
     <PreferenceCategory android:title="Data Management">

@@ -11,6 +11,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import kotlinx.coroutines.launch
+import android.widget.Toast
 
 class SettingsFragment : PreferenceFragmentCompat() {
 
@@ -33,6 +34,15 @@ class SettingsFragment : PreferenceFragmentCompat() {
         // Handler for "Choose Background"
         findPreference<Preference>("pref_key_choose_background")?.setOnPreferenceClickListener {
             photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            true
+        }
+
+        findPreference<Preference>("pref_key_reset_background")?.setOnPreferenceClickListener {
+            val prefs = requireActivity().getSharedPreferences("NfcAppPrefs", Context.MODE_PRIVATE)
+            prefs.edit {
+                remove("background_image_uri")
+            }
+            Toast.makeText(requireContext(), getString(R.string.toast_background_reset), Toast.LENGTH_SHORT).show()
             true
         }
 

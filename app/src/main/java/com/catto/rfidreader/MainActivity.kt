@@ -310,6 +310,10 @@ class MainActivity : AppCompatActivity() {
                 e.printStackTrace()
                 Toast.makeText(this, getString(R.string.toast_failed_to_load_saved_background), Toast.LENGTH_SHORT).show()
             }
+        } else {
+            // --- ADD THIS ELSE BLOCK ---
+            // If no custom background URI is saved, set the default one.
+            mainLayout.setBackgroundResource(R.drawable.app_background)
         }
     }
 
