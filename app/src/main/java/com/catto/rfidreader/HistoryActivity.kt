@@ -10,6 +10,9 @@ import android.widget.ImageButton
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.asLiveData
 import androidx.recyclerview.widget.DiffUtil
@@ -20,10 +23,12 @@ import java.util.*
 
 class HistoryActivity : AppCompatActivity() {
 
-    // --- CHANGE 1: The ViewModel is now initialized directly, with no factory block ---
     private val historyViewModel: HistoryViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // --- ADD THIS to enable edge-to-edge display ---
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_history)
 
@@ -31,13 +36,25 @@ class HistoryActivity : AppCompatActivity() {
         val adapter = HistoryAdapter()
         recyclerView.adapter = adapter
 
+        // --- ADD THIS LISTENER to handle the status bar overlap ---
+        ViewCompat.setOnApplyWindowInsetsListener(recyclerView) { view, windowInsets ->
+            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+
+            // Apply the insets as padding to the RecyclerView
+            view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
+
+            // Return the insets to fulfill the listener's contract
+            windowInsets
+        }
+
         historyViewModel.allCards.observe(this) { cards ->
             cards?.let { adapter.submitList(it) }
         }
     }
 }
 
-// The HistoryAdapter is unchanged
+// The classes below are unchanged, but are included here to ensure the file is complete.
+
 class HistoryAdapter : ListAdapter<ScannedCard, HistoryAdapter.CardViewHolder>(CardsComparator()) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CardViewHolder {
         return CardViewHolder.create(parent)
@@ -110,12 +127,7 @@ class HistoryAdapter : ListAdapter<ScannedCard, HistoryAdapter.CardViewHolder>(C
     }
 }
 
-// --- CHANGE 2: The ViewModel now inherits from AndroidViewModel ---
-// This gives it access to the Application context directly, removing the need for a factory.
 class HistoryViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as App).database.scannedCardDao()
     val allCards = dao.getAllCards().asLiveData()
 }
-
-
-// --- CHANGE 3: The problematic HistoryViewModelFactory class is now completely GONE ---
