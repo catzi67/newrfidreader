@@ -12,6 +12,7 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import kotlinx.coroutines.launch
 import android.widget.Toast
+import androidx.preference.SwitchPreferenceCompat
 
 class SettingsFragment : PreferenceFragmentCompat() {
 
@@ -30,6 +31,20 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.preferences, rootKey)
+
+        // --- ADD THIS LOGIC ---
+        val gameifySwitch = findPreference<SwitchPreferenceCompat>("pref_key_gameify")
+        val resetHighScorePref = findPreference<Preference>("pref_key_reset_high_score")
+
+        // Set the initial visibility of the reset option based on the switch's state
+        resetHighScorePref?.isVisible = gameifySwitch?.isChecked ?: true
+
+        // Add a listener to hide/show the reset option when the switch is toggled
+        gameifySwitch?.setOnPreferenceChangeListener { _, newValue ->
+            resetHighScorePref?.isVisible = newValue as Boolean
+            true
+        }
+
 
         // Handler for "Choose Background"
         findPreference<Preference>("pref_key_choose_background")?.setOnPreferenceClickListener {

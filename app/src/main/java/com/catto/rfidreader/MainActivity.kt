@@ -30,6 +30,8 @@ import java.math.BigInteger
 import java.nio.ByteBuffer
 import kotlin.math.abs
 import kotlin.math.pow
+import androidx.preference.PreferenceManager
+import android.view.View
 
 class MainActivity : AppCompatActivity() {
 
@@ -66,7 +68,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var resetRunnable: Runnable
     private var highScore = 0
     private val database by lazy { (application as App).database.scannedCardDao() }
-
+    private var isGameifyEnabled = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -99,6 +101,7 @@ class MainActivity : AppCompatActivity() {
         scoreCard.alpha = 0f
 
         loadHighScore()
+        loadSettings()
         setupButtonListeners()
         resetUI()
     }
@@ -106,6 +109,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         // Refresh UI in case settings were changed
+        loadSettings()
         loadHighScore()
         loadSavedBackground()
         setupForegroundDispatch()
@@ -144,6 +148,12 @@ class MainActivity : AppCompatActivity() {
         nfcAdapter?.enableForegroundDispatch(this, pendingIntent, null, null)
     }
 
+    // --- ADD THIS NEW FUNCTION ---
+    private fun loadSettings() {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+        isGameifyEnabled = prefs.getBoolean("pref_key_gameify", true)
+    }
+
     private fun handleNfcTag(intent: Intent) {
         resetHandler.removeCallbacks(resetRunnable)
 
@@ -174,14 +184,20 @@ class MainActivity : AppCompatActivity() {
             val tagInfo = parseTagInfo(it)
             nfcTagInfoTextView.text = tagInfo
 
-            // The score should be calculated from the standard Big-Endian value
-            val score = calculateScore(bigEndianBytes)
-            scoreValueText.text = score.toString()
-            if (score > highScore) {
-                highScore = score
-                saveHighScore(highScore)
-                highScoreValueText.text = highScore.toString()
-                showCongratsSnackbar()
+            var score = 0
+            // --- UPDATE THE SCORING LOGIC ---
+            if (isGameifyEnabled) {
+                scoreCard.visibility = View.VISIBLE // Make sure card is visible
+                val score = calculateScore(bigEndianBytes)
+                scoreValueText.text = score.toString()
+                if (score > highScore) {
+                    highScore = score
+                    saveHighScore(highScore)
+                    highScoreValueText.text = highScore.toString()
+                    showCongratsSnackbar()
+                }
+            } else {
+                scoreCard.visibility = View.GONE // Hide the card if disabled
             }
 
             // --- SAVE TO DB ---
@@ -205,8 +221,10 @@ class MainActivity : AppCompatActivity() {
             // --- UPDATE UI ---
             promptCard.animate().alpha(0f).setDuration(400).start()
             infoCard.animate().alpha(1f).translationY(0f).setDuration(400).start()
-            scoreCard.animate().alpha(1f).translationY(0f).setDuration(400).start()
-
+            // Make the score card animation conditional as well
+            if (isGameifyEnabled) {
+                scoreCard.animate().alpha(1f).translationY(0f).setDuration(400).start()
+            }
             setControlsEnabled(true)
             copyFab.show()
             resetHandler.postDelayed(resetRunnable, 10000)
@@ -273,6 +291,9 @@ class MainActivity : AppCompatActivity() {
         revBinValue.text = ""
         scoreValueText.text = ""
         nfcTagInfoTextView.text = ""
+
+        // Also ensure the score card is hidden on reset
+        scoreCard.visibility = View.GONE
 
         setControlsEnabled(false)
         copyFab.hide()

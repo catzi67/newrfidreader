@@ -1,6 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen
-    xmlns:android="http://schemas.android.com/apk/res/android">
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory app:title="@string/pref_category_title_gamification">
+
+        <SwitchPreferenceCompat
+            app:key="pref_key_gameify"
+            app:title="@string/pref_title_gameify"
+            app:summaryOn="@string/pref_summary_gameify_on"
+            app:summaryOff="@string/pref_summary_gameify_off"
+            app:defaultValue="true" />
+
+    </PreferenceCategory>
+
+
 
     <PreferenceCategory android:title="Appearance">
 

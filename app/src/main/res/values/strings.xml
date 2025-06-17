@@ -29,4 +29,8 @@
     <string name="pref_title_reset_background">Reset to default background</string>
     <string name="pref_summary_reset_background">Removes the custom background image</string>
     <string name="toast_background_reset">Background reset. Re-open the main screen to see the change.</string>
+    <string name="pref_category_title_gamification">Gamification</string>
+    <string name="pref_title_gameify">Gameify</string>
+    <string name="pref_summary_gameify_on">Scoring and high score are enabled</string>
+    <string name="pref_summary_gameify_off">Scoring and high score are disabled</string>
 </resources>
