@@ -14,8 +14,8 @@ android {
         applicationId = "com.catto.rfidreader"
         minSdk = 24
         targetSdk = 36
-        versionCode = 4
-        versionName = "1.0.3"
+        versionCode = 5
+        versionName = "1.0.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -75,5 +75,5 @@ dependencies {
     ksp("androidx.room:room-compiler:$room_version")
     implementation("androidx.activity:activity-ktx:1.10.1")
     implementation("androidx.preference:preference-ktx:1.2.1")
-
+    implementation("com.github.dhaval2404:colorpicker:2.3")
 }

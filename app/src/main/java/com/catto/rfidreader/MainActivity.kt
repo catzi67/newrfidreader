@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.nfc.NfcAdapter
@@ -15,7 +16,9 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.View
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -31,23 +34,22 @@ import java.nio.ByteBuffer
 import kotlin.math.abs
 import kotlin.math.pow
 import androidx.preference.PreferenceManager
-import android.view.View
 
 class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "NFCApp"
         private const val PREFS_NAME = "NfcAppPrefs"
-        private const val PREF_KEY_BACKGROUND_URI = "background_image_uri"
         private const val PREF_KEY_HIGH_SCORE = "high_score"
         private const val SCORING_EXPONENT = 3.5
     }
 
-    // --- UI VIEW REFERENCES ---
+    // UI View References
     private lateinit var mainLayout: androidx.constraintlayout.widget.ConstraintLayout
+    private lateinit var cardContainer: LinearLayout
+    private lateinit var scoreCard: MaterialCardView
     private lateinit var infoCard: MaterialCardView
     private lateinit var promptCard: MaterialCardView
-    private lateinit var scoreCard: MaterialCardView
     private lateinit var hexValue: TextView
     private lateinit var decValue: TextView
     private lateinit var binValue: TextView
@@ -62,13 +64,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var settingsButton: ImageButton
     private lateinit var copyFab: FloatingActionButton
 
-    // --- State and Logic Variables ---
+    // State and Logic Variables
     private var nfcAdapter: NfcAdapter? = null
     private val resetHandler = Handler(Looper.getMainLooper())
     private lateinit var resetRunnable: Runnable
     private var highScore = 0
-    private val database by lazy { (application as App).database.scannedCardDao() }
     private var isGameifyEnabled = true
+    private val database by lazy { (application as App).database.scannedCardDao() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -76,9 +78,10 @@ class MainActivity : AppCompatActivity() {
 
         // Initialize all views
         mainLayout = findViewById(R.id.main_layout)
-        infoCard = findViewById(R.id.info_card)
+        cardContainer = findViewById(R.id.card_container)
         promptCard = findViewById(R.id.prompt_card)
         scoreCard = findViewById(R.id.score_card)
+        infoCard = findViewById(R.id.info_card)
         hexValue = findViewById(R.id.hex_value)
         decValue = findViewById(R.id.dec_value)
         binValue = findViewById(R.id.bin_value)
@@ -95,13 +98,8 @@ class MainActivity : AppCompatActivity() {
 
         resetRunnable = Runnable { resetUI() }
 
-        // Set initial animated state
-        infoCard.alpha = 0f
-        promptCard.alpha = 0f
-        scoreCard.alpha = 0f
-
-        loadHighScore()
         loadSettings()
+        loadHighScore()
         setupButtonListeners()
         resetUI()
     }
@@ -136,22 +134,8 @@ class MainActivity : AppCompatActivity() {
             return
         }
         val intent = Intent(this, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-
-        // The flag MUST be FLAG_MUTABLE so the NFC system can add the tag data to the intent.
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            intent,
-            PendingIntent.FLAG_MUTABLE
-        )
-
+        val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_MUTABLE)
         nfcAdapter?.enableForegroundDispatch(this, pendingIntent, null, null)
-    }
-
-    // --- ADD THIS NEW FUNCTION ---
-    private fun loadSettings() {
-        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
-        isGameifyEnabled = prefs.getBoolean("pref_key_gameify", true)
     }
 
     private fun handleNfcTag(intent: Intent) {
@@ -165,18 +149,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         tag?.let {
-            // --- THIS IS THE UPDATED LOGIC ---
-
-            // The raw tag ID is typically Little-Endian. This is our "Reversed" value.
+            // --- PRIMARY LOGIC ---
             val littleEndianBytes = it.id
-            // Reversing the byte order gives us the standard Big-Endian value for our "Forward" value.
             val bigEndianBytes = littleEndianBytes.reversedArray()
 
-            // Populate the UI according to the new definitions
             hexValue.text = bytesToHexString(bigEndianBytes)
             decValue.text = bytesToDecString(bigEndianBytes)
             binValue.text = bytesToBinString(bigEndianBytes)
-
             revHexValue.text = bytesToHexString(littleEndianBytes)
             revDecValue.text = bytesToDecString(littleEndianBytes)
             revBinValue.text = bytesToBinString(littleEndianBytes)
@@ -185,10 +164,8 @@ class MainActivity : AppCompatActivity() {
             nfcTagInfoTextView.text = tagInfo
 
             var score = 0
-            // --- UPDATE THE SCORING LOGIC ---
             if (isGameifyEnabled) {
-                scoreCard.visibility = View.VISIBLE // Make sure card is visible
-                val score = calculateScore(bigEndianBytes)
+                score = calculateScore(bigEndianBytes)
                 scoreValueText.text = score.toString()
                 if (score > highScore) {
                     highScore = score
@@ -196,19 +173,19 @@ class MainActivity : AppCompatActivity() {
                     highScoreValueText.text = highScore.toString()
                     showCongratsSnackbar()
                 }
+                scoreCard.visibility = View.VISIBLE
             } else {
-                scoreCard.visibility = View.GONE // Hide the card if disabled
+                scoreCard.visibility = View.GONE
             }
 
             // --- SAVE TO DB ---
-            // We will save the standard Big-Endian representation as the primary value.
             lifecycleScope.launch {
                 database.insert(
                     ScannedCard(
-                        serialNumberHex = hexValue.text.toString(), // Big-Endian
+                        serialNumberHex = hexValue.text.toString(),
                         decValue = decValue.text.toString(),
                         binValue = binValue.text.toString(),
-                        revHexValue = revHexValue.text.toString(), // Little-Endian
+                        revHexValue = revHexValue.text.toString(),
                         revDecValue = revDecValue.text.toString(),
                         revBinValue = revBinValue.text.toString(),
                         score = score,
@@ -219,12 +196,9 @@ class MainActivity : AppCompatActivity() {
             }
 
             // --- UPDATE UI ---
-            promptCard.animate().alpha(0f).setDuration(400).start()
-            infoCard.animate().alpha(1f).translationY(0f).setDuration(400).start()
-            // Make the score card animation conditional as well
-            if (isGameifyEnabled) {
-                scoreCard.animate().alpha(1f).translationY(0f).setDuration(400).start()
-            }
+            promptCard.visibility = View.GONE
+            cardContainer.visibility = View.VISIBLE
+
             setControlsEnabled(true)
             copyFab.show()
             resetHandler.postDelayed(resetRunnable, 10000)
@@ -282,7 +256,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun resetUI() {
-        // Clear all text fields
         hexValue.text = ""
         decValue.text = ""
         binValue.text = ""
@@ -292,19 +265,18 @@ class MainActivity : AppCompatActivity() {
         scoreValueText.text = ""
         nfcTagInfoTextView.text = ""
 
-        // Also ensure the score card is hidden on reset
-        scoreCard.visibility = View.GONE
-
         setControlsEnabled(false)
         copyFab.hide()
 
-        // Hide data cards and show the prompt card
-        infoCard.animate().alpha(0f).setDuration(400).start()
-        scoreCard.animate().alpha(0f).setDuration(400).start()
-        promptCard.animate().alpha(1f).setDuration(400).start()
+        cardContainer.visibility = View.INVISIBLE
+        promptCard.visibility = View.VISIBLE
     }
 
-    // --- Helper and Calculation Functions ---
+    private fun loadSettings() {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+        isGameifyEnabled = prefs.getBoolean("pref_key_gameify", true)
+    }
+
     private fun showCongratsSnackbar() {
         Snackbar.make(mainLayout, getString(R.string.congrats_new_high_score), Snackbar.LENGTH_LONG).show()
     }
@@ -322,19 +294,28 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadSavedBackground() {
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        val uriString = prefs.getString(PREF_KEY_BACKGROUND_URI, null)
-        if (uriString != null) {
-            try {
-                val uri = uriString.toUri()
-                loadBackgroundFromUri(uri)
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(this, getString(R.string.toast_failed_to_load_saved_background), Toast.LENGTH_SHORT).show()
+        val backgroundType = prefs.getString("pref_key_background_type", "COLOR")
+        val backgroundValue = prefs.getString("pref_key_background_value", null)
+
+        when (backgroundType) {
+            "IMAGE" -> {
+                if (backgroundValue != null) {
+                    try {
+                        val uri = backgroundValue.toUri()
+                        loadBackgroundFromUri(uri)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        Toast.makeText(this, getString(R.string.toast_failed_to_load_saved_background), Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
-        } else {
-            // --- ADD THIS ELSE BLOCK ---
-            // If no custom background URI is saved, set the default one.
-            mainLayout.setBackgroundResource(R.drawable.app_background)
+            "COLOR" -> {
+                val color = backgroundValue?.toIntOrNull() ?: Color.DKGRAY
+                mainLayout.setBackgroundColor(color)
+            }
+            else -> {
+                mainLayout.setBackgroundColor(Color.DKGRAY)
+            }
         }
     }
 

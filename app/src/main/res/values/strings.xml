@@ -26,11 +26,14 @@
     <string name="toast_failed_to_load_saved_background">Failed to load saved background</string>
     <string name="toast_high_score_reset">High score has been reset</string>
     <string name="congrats_new_high_score">Congratulations! You\'ve set a new high score!</string>
-    <string name="pref_title_reset_background">Reset to default background</string>
-    <string name="pref_summary_reset_background">Removes the custom background image</string>
-    <string name="toast_background_reset">Background reset. Re-open the main screen to see the change.</string>
     <string name="pref_category_title_gamification">Gamification</string>
     <string name="pref_title_gameify">Gameify</string>
     <string name="pref_summary_gameify_on">Scoring and high score are enabled</string>
     <string name="pref_summary_gameify_off">Scoring and high score are disabled</string>
+    <string name="pref_title_set_background_color">Set background color</string>
+    <string name="pref_summary_set_background_color">Choose a solid color for the background</string>
+    <string name="pref_title_reset_background">Reset to default background</string>
+    <string name="pref_summary_reset_background">Reverts the background to the default dark gray</string>
+    <string name="toast_background_reset">Background reset. Re-open the main screen to see the change.</string>
+
 </resources>

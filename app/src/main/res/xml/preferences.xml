@@ -16,7 +16,12 @@
 
 
 
-    <PreferenceCategory android:title="Appearance">
+    <PreferenceCategory app:title="Appearance">
+
+        <Preference
+            android:key="pref_key_set_background_color"
+            android:title="@string/pref_title_set_background_color"
+            android:summary="@string/pref_summary_set_background_color"/>
 
         <Preference
             android:key="pref_key_choose_background"
@@ -27,6 +32,7 @@
             android:key="pref_key_reset_background"
             android:title="@string/pref_title_reset_background"
             android:summary="@string/pref_summary_reset_background"/>
+
     </PreferenceCategory>
 
     <PreferenceCategory android:title="Data Management">
