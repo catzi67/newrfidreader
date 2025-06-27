@@ -13,8 +13,6 @@ import android.nfc.tech.MifareClassic
 import android.nfc.tech.NfcA
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.widget.ImageButton
@@ -50,6 +48,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var scoreCard: MaterialCardView
     private lateinit var infoCard: MaterialCardView
     private lateinit var promptCard: MaterialCardView
+    private lateinit var initialPromptCard: MaterialCardView
     private lateinit var hexValue: TextView
     private lateinit var decValue: TextView
     private lateinit var binValue: TextView
@@ -66,20 +65,22 @@ class MainActivity : AppCompatActivity() {
 
     // State and Logic Variables
     private var nfcAdapter: NfcAdapter? = null
-    private val resetHandler = Handler(Looper.getMainLooper())
-    private lateinit var resetRunnable: Runnable
     private var highScore = 0
     private var isGameifyEnabled = true
-    private val database by lazy { (application as App).database.scannedCardDao() }
+    private lateinit var database: ScannedCardDao
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Initialize database from the Application class
+        database = (application as App).database.scannedCardDao()
+
         // Initialize all views
         mainLayout = findViewById(R.id.main_layout)
         cardContainer = findViewById(R.id.card_container)
         promptCard = findViewById(R.id.prompt_card)
+        initialPromptCard = findViewById(R.id.initial_prompt_card)
         scoreCard = findViewById(R.id.score_card)
         infoCard = findViewById(R.id.info_card)
         hexValue = findViewById(R.id.hex_value)
@@ -95,8 +96,6 @@ class MainActivity : AppCompatActivity() {
         shareButton = findViewById(R.id.share_button)
         settingsButton = findViewById(R.id.settings_button)
         copyFab = findViewById(R.id.fab_copy)
-
-        resetRunnable = Runnable { resetUI() }
 
         loadSettings()
         loadHighScore()
@@ -116,7 +115,6 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         nfcAdapter?.disableForegroundDispatch(this)
-        resetHandler.removeCallbacks(resetRunnable)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -139,8 +137,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleNfcTag(intent: Intent) {
-        resetHandler.removeCallbacks(resetRunnable)
-
         val tag: Tag? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             intent.getParcelableExtra(NfcAdapter.EXTRA_TAG, Tag::class.java)
         } else {
@@ -196,12 +192,12 @@ class MainActivity : AppCompatActivity() {
             }
 
             // --- UPDATE UI ---
-            promptCard.visibility = View.GONE
-            cardContainer.visibility = View.VISIBLE
+            initialPromptCard.visibility = View.GONE
+            promptCard.visibility = View.VISIBLE // Show "Scan another card" prompt
+            cardContainer.visibility = View.VISIBLE // Show card details
 
             setControlsEnabled(true)
             copyFab.show()
-            resetHandler.postDelayed(resetRunnable, 10000)
         }
     }
 
@@ -240,9 +236,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         copyFab.setOnClickListener {
-            resetHandler.removeCallbacks(resetRunnable)
-            resetHandler.postDelayed(resetRunnable, 10000)
-
             val textToCopy = "Hex: ${hexValue.text}\nDecimal: ${decValue.text}"
             val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
             val clip = ClipData.newPlainText("RFID Data", textToCopy)
@@ -268,8 +261,9 @@ class MainActivity : AppCompatActivity() {
         setControlsEnabled(false)
         copyFab.hide()
 
-        cardContainer.visibility = View.INVISIBLE
-        promptCard.visibility = View.VISIBLE
+        cardContainer.visibility = View.GONE
+        promptCard.visibility = View.GONE
+        initialPromptCard.visibility = View.VISIBLE
     }
 
     private fun loadSettings() {

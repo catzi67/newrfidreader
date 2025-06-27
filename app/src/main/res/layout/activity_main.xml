@@ -14,12 +14,12 @@
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
         android:orientation="vertical"
-        android:visibility="invisible"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.35"
+        app:layout_constraintVertical_bias="0.25"
         tools:visibility="visible">
 
         <com.google.android.material.card.MaterialCardView
@@ -262,22 +262,48 @@
     </LinearLayout>
 
     <com.google.android.material.card.MaterialCardView
-        android:id="@+id/prompt_card"
+        android:id="@+id/initial_prompt_card"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         app:cardBackgroundColor="#99212121"
         app:cardCornerRadius="12dp"
         app:cardElevation="8dp"
-        app:layout_constraintBottom_toBottomOf="@+id/card_container"
-        app:layout_constraintEnd_toEndOf="@+id/card_container"
-        app:layout_constraintStart_toStartOf="@+id/card_container"
-        app:layout_constraintTop_toTopOf="@+id/card_container">
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintWidth_percent="0.9">
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
             android:minHeight="200dp"
+            android:padding="24dp"
+            android:text="@string/scan_prompt"
+            android:textColor="@android:color/white"
+            android:textSize="28sp" />
+    </com.google.android.material.card.MaterialCardView>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/prompt_card"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:visibility="gone"
+        app:cardBackgroundColor="#99212121"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="8dp"
+        app:layout_constraintEnd_toEndOf="@+id/card_container"
+        app:layout_constraintStart_toStartOf="@+id/card_container"
+        app:layout_constraintTop_toBottomOf="@+id/card_container"
+        tools:visibility="visible">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:minHeight="100dp"
             android:padding="24dp"
             android:text="@string/scan_prompt"
             android:textColor="@android:color/white"
@@ -295,7 +321,7 @@
         app:cardCornerRadius="12dp"
         app:layout_constraintEnd_toEndOf="@id/card_container"
         app:layout_constraintStart_toStartOf="@id/card_container"
-        app:layout_constraintTop_toBottomOf="@id/card_container"
+        app:layout_constraintTop_toBottomOf="@id/prompt_card"
         tools:alpha="1">
 
         <TextView
