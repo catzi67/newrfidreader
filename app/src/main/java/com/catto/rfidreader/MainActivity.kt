@@ -59,7 +59,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var scoreValueText: TextView
     private lateinit var highScoreValueText: TextView
     private lateinit var historyButton: ImageButton
-    private lateinit var shareButton: ImageButton
+    private lateinit var converterButton: ImageButton
     private lateinit var settingsButton: ImageButton
     private lateinit var copyFab: FloatingActionButton
 
@@ -93,12 +93,10 @@ class MainActivity : AppCompatActivity() {
         scoreValueText = findViewById(R.id.score_value_text)
         highScoreValueText = findViewById(R.id.high_score_value_text)
         historyButton = findViewById(R.id.history_button)
-        shareButton = findViewById(R.id.share_button)
+        converterButton = findViewById(R.id.converter_button)
         settingsButton = findViewById(R.id.settings_button)
         copyFab = findViewById(R.id.fab_copy)
 
-        loadSettings()
-        loadHighScore()
         setupButtonListeners()
         resetUI()
     }
@@ -106,9 +104,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         // Refresh UI in case settings were changed
-        loadSettings()
-        loadHighScore()
-        loadSavedBackground()
+        loadAndApplySettings()
         setupForegroundDispatch()
     }
 
@@ -206,33 +202,12 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, HistoryActivity::class.java))
         }
 
-        settingsButton.setOnClickListener {
-            startActivity(Intent(this, SettingsActivity::class.java))
+        converterButton.setOnClickListener {
+            startActivity(Intent(this, ConverterActivity::class.java))
         }
 
-        shareButton.setOnClickListener {
-            val shareText = """
-                NFC Card Scan:
-                Hex: ${hexValue.text}
-                Decimal: ${decValue.text}
-                Binary: ${binValue.text}
-                ---
-                Reversed Hex: ${revHexValue.text}
-                Reversed Dec: ${revDecValue.text}
-                Reversed Bin: ${revBinValue.text}
-                ---
-                Score: ${scoreValueText.text} (High: $highScore)
-                ---
-                ${nfcTagInfoTextView.text}
-            """.trimIndent()
-
-            val sendIntent = Intent().apply {
-                action = Intent.ACTION_SEND
-                putExtra(Intent.EXTRA_TEXT, shareText)
-                type = "text/plain"
-            }
-            val shareIntent = Intent.createChooser(sendIntent, "Share Card Details")
-            startActivity(shareIntent)
+        settingsButton.setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
         }
 
         copyFab.setOnClickListener {
@@ -245,7 +220,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setControlsEnabled(isEnabled: Boolean) {
-        shareButton.isEnabled = isEnabled
+        // No controls to disable/enable currently
     }
 
     private fun resetUI() {
@@ -266,19 +241,43 @@ class MainActivity : AppCompatActivity() {
         initialPromptCard.visibility = View.VISIBLE
     }
 
-    private fun loadSettings() {
+    private fun loadAndApplySettings() {
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
         isGameifyEnabled = prefs.getBoolean("pref_key_gameify", true)
+        highScore = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getInt(PREF_KEY_HIGH_SCORE, 0)
+        highScoreValueText.text = highScore.toString()
+
+        loadSavedBackground()
+        applyTextSize()
     }
+
+    private fun applyTextSize() {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+        val textSizePref = prefs.getString("pref_key_text_size", "small")
+        val (labelSize, valueSize) = when (textSizePref) {
+            "medium" -> 16f to 18f
+            "large" -> 18f to 20f
+            else -> 14f to 16f // "small"
+        }
+
+        val valueTextViews = listOf(hexValue, decValue, binValue, revHexValue, revDecValue, revBinValue)
+        valueTextViews.forEach { it.textSize = valueSize }
+
+        val labelTextViews = listOf<TextView>(
+            findViewById(R.id.hex_label), findViewById(R.id.dec_label), findViewById(R.id.bin_label),
+            findViewById(R.id.rev_hex_label), findViewById(R.id.rev_dec_label), findViewById(R.id.rev_bin_label),
+            findViewById(R.id.score_label), findViewById(R.id.high_score_label)
+        )
+        labelTextViews.forEach { it.textSize = labelSize }
+
+        nfcTagInfoTextView.textSize = labelSize
+        highScoreValueText.textSize = labelSize
+        scoreValueText.textSize = 48f // Keep score text large
+    }
+
 
     private fun showCongratsSnackbar() {
         Snackbar.make(mainLayout, getString(R.string.congrats_new_high_score), Snackbar.LENGTH_LONG).show()
-    }
-
-    private fun loadHighScore() {
-        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        highScore = prefs.getInt(PREF_KEY_HIGH_SCORE, 0)
-        highScoreValueText.text = highScore.toString()
     }
 
     private fun saveHighScore(score: Int) {
@@ -373,6 +372,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun bytesToBinString(bytes: ByteArray): String {
-        return BigInteger(1, bytes).toString(2)
+        if (bytes.isEmpty()) return ""
+        return bytes.joinToString(" ") { byte ->
+            String.format("%8s", Integer.toBinaryString(byte.toInt() and 0xFF)).replace(' ', '0')
+        }
     }
 }

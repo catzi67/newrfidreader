@@ -3,6 +3,7 @@ package com.catto.rfidreader
 import android.app.Application
 import android.content.Intent
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -15,6 +16,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.asLiveData
+import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -26,24 +28,21 @@ class HistoryActivity : AppCompatActivity() {
     private val historyViewModel: HistoryViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // --- ADD THIS to enable edge-to-edge display ---
         WindowCompat.setDecorFitsSystemWindows(window, false)
-
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_history)
 
         val recyclerView = findViewById<RecyclerView>(R.id.history_recycler_view)
-        val adapter = HistoryAdapter()
+
+        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+        val textSizePref = prefs.getString("pref_key_text_size", "small") ?: "small"
+        val adapter = HistoryAdapter(textSizePref)
+
         recyclerView.adapter = adapter
 
-        // --- ADD THIS LISTENER to handle the status bar overlap ---
         ViewCompat.setOnApplyWindowInsetsListener(recyclerView) { view, windowInsets ->
             val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
-
-            // Apply the insets as padding to the RecyclerView
             view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
-
-            // Return the insets to fulfill the listener's contract
             windowInsets
         }
 
@@ -53,16 +52,14 @@ class HistoryActivity : AppCompatActivity() {
     }
 }
 
-// The classes below are unchanged, but are included here to ensure the file is complete.
-
-class HistoryAdapter : ListAdapter<ScannedCard, HistoryAdapter.CardViewHolder>(CardsComparator()) {
+class HistoryAdapter(private val textSizePref: String) : ListAdapter<ScannedCard, HistoryAdapter.CardViewHolder>(CardsComparator()) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CardViewHolder {
         return CardViewHolder.create(parent)
     }
 
     override fun onBindViewHolder(holder: CardViewHolder, position: Int) {
         val current = getItem(position)
-        holder.bind(current)
+        holder.bind(current, textSizePref)
     }
 
     class CardViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -71,11 +68,22 @@ class HistoryAdapter : ListAdapter<ScannedCard, HistoryAdapter.CardViewHolder>(C
         private val tagInfoView: TextView = itemView.findViewById(R.id.tag_info_text)
         private val shareButton: ImageButton = itemView.findViewById(R.id.share_history_button)
 
-        fun bind(card: ScannedCard) {
+        fun bind(card: ScannedCard, textSizePref: String) {
             val context = itemView.context
             tagInfoView.text = card.tagInfo
             serialNumberView.text = context.getString(R.string.history_sn_formatted, card.serialNumberHex)
             timestampView.text = context.getString(R.string.history_scanned_formatted, formatTimestamp(card.scanTimestamp))
+
+            val (labelSize, valueSize) = when (textSizePref) {
+                "medium" -> 14f to 16f
+                "large" -> 16f to 18f
+                else -> 12f to 14f // "small"
+            }
+
+            serialNumberView.setTextSize(TypedValue.COMPLEX_UNIT_SP, valueSize)
+            timestampView.setTextSize(TypedValue.COMPLEX_UNIT_SP, labelSize)
+            tagInfoView.setTextSize(TypedValue.COMPLEX_UNIT_SP, labelSize)
+
 
             shareButton.setOnClickListener {
                 val shareText = """

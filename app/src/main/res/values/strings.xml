@@ -17,6 +17,7 @@
     <string name="content_desc_reset_score_button">Reset High Score</string>
     <string name="content_desc_settings_button">Settings</string>
     <string name="content_desc_share_from_history">Share this scan\'s details</string>
+    <string name="content_desc_converter_button">Open Number Converter</string>
     <string name="history_sn_formatted">SN: %1$s</string>
     <string name="history_scanned_formatted">Scanned: %1$s</string>
     <string name="toast_nfc_not_available">NFC is not available on this device.</string>
@@ -35,5 +36,21 @@
     <string name="pref_title_reset_background">Reset to default background</string>
     <string name="pref_summary_reset_background">Reverts the background to the default dark gray</string>
     <string name="toast_background_reset">Background reset. Re-open the main screen to see the change.</string>
+    <string name="title_activity_converter">Number Converter</string>
+    <string name="hint_enter_value">Enter value</string>
+    <string name="button_convert">Convert</string>
+    <string name="pref_title_text_size">Text Size</string>
+
+    <string-array name="text_size_entries">
+        <item>Small</item>
+        <item>Medium</item>
+        <item>Large</item>
+    </string-array>
+
+    <string-array name="text_size_values">
+        <item>small</item>
+        <item>medium</item>
+        <item>large</item>
+    </string-array>
 
 </resources>

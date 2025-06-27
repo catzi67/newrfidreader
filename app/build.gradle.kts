@@ -3,7 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     //id("com.google.devtools.ksp") version "1.9.22-1.0.17" // Add this line
-    id("com.google.devtools.ksp") version "2.0.21-1.0.25" // Add this line
+    //id("com.google.devtools.ksp") version "2.0.21-1.0.25" // Add this line
+    id("com.google.devtools.ksp") version "2.2.0-2.0.2" // Add this line
 }
 
 android {

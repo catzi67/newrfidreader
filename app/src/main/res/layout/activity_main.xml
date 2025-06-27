@@ -339,18 +339,20 @@
 
     <LinearLayout
         android:id="@+id/button_controls_layout"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
         android:orientation="horizontal"
+        android:gravity="center"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/fab_copy"
         app:layout_constraintStart_toStartOf="parent">
 
         <ImageButton
             android:id="@+id/history_button"
-            android:layout_width="64dp"
+            android:layout_width="0dp"
             android:layout_height="64dp"
+            android:layout_weight="1"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/content_desc_history_button"
             android:padding="16dp"
@@ -359,23 +361,22 @@
             app:tint="@android:color/white" />
 
         <ImageButton
-            android:id="@+id/share_button"
-            android:layout_width="64dp"
+            android:id="@+id/converter_button"
+            android:layout_width="0dp"
             android:layout_height="64dp"
-            android:layout_marginStart="24dp"
+            android:layout_weight="1"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/content_desc_share_button"
-            android:enabled="false"
+            android:contentDescription="@string/content_desc_converter_button"
             android:padding="16dp"
             android:scaleType="fitCenter"
-            android:src="@drawable/ic_share_24"
+            android:src="@drawable/ic_swap_horiz_24"
             app:tint="@android:color/white" />
 
         <ImageButton
             android:id="@+id/settings_button"
-            android:layout_width="64dp"
+            android:layout_width="0dp"
             android:layout_height="64dp"
-            android:layout_marginStart="24dp"
+            android:layout_weight="1"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/content_desc_settings_button"
             android:src="@drawable/ic_settings_24"

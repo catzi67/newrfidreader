@@ -18,6 +18,14 @@
 
     <PreferenceCategory app:title="Appearance">
 
+        <ListPreference
+            app:key="pref_key_text_size"
+            app:title="@string/pref_title_text_size"
+            app:summary="%s"
+            app:entries="@array/text_size_entries"
+            app:entryValues="@array/text_size_values"
+            app:defaultValue="small" />
+
         <Preference
             android:key="pref_key_set_background_color"
             android:title="@string/pref_title_set_background_color"
