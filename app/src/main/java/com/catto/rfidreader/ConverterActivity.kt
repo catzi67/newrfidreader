@@ -1,5 +1,7 @@
 package com.catto.rfidreader
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.net.Uri
@@ -8,6 +10,7 @@ import android.util.Log
 import android.util.TypedValue
 import android.view.View
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.TextView
@@ -43,6 +46,13 @@ class ConverterActivity : AppCompatActivity() {
     private lateinit var revBinValue: TextView
     private lateinit var rootLayout: ConstraintLayout
 
+    private lateinit var copyHexButton: ImageButton
+    private lateinit var copyDecButton: ImageButton
+    private lateinit var copyBinButton: ImageButton
+    private lateinit var copyRevHexButton: ImageButton
+    private lateinit var copyRevDecButton: ImageButton
+    private lateinit var copyRevBinButton: ImageButton
+
     override fun onCreate(savedInstanceState: Bundle?) {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
@@ -71,9 +81,38 @@ class ConverterActivity : AppCompatActivity() {
         revDecValue = findViewById(R.id.rev_dec_value)
         revBinValue = findViewById(R.id.rev_bin_value)
 
+        copyHexButton = findViewById(R.id.copy_hex_button)
+        copyDecButton = findViewById(R.id.copy_dec_button)
+        copyBinButton = findViewById(R.id.copy_bin_button)
+        copyRevHexButton = findViewById(R.id.copy_rev_hex_button)
+        copyRevDecButton = findViewById(R.id.copy_rev_dec_button)
+        copyRevBinButton = findViewById(R.id.copy_rev_bin_button)
+
         convertButton.setOnClickListener {
             performConversion()
         }
+
+        setupCopyButtons()
+    }
+
+    private fun setupCopyButtons() {
+        copyHexButton.setOnClickListener { copyToClipboard("Hex", hexValue.text.toString()) }
+        copyDecButton.setOnClickListener { copyToClipboard("Decimal", decValue.text.toString()) }
+        copyBinButton.setOnClickListener { copyToClipboard("Binary", binValue.text.toString()) }
+        copyRevHexButton.setOnClickListener { copyToClipboard("Reversed Hex", revHexValue.text.toString()) }
+        copyRevDecButton.setOnClickListener { copyToClipboard("Reversed Decimal", revDecValue.text.toString()) }
+        copyRevBinButton.setOnClickListener { copyToClipboard("Reversed Binary", revBinValue.text.toString()) }
+    }
+
+    private fun copyToClipboard(label: String, value: String) {
+        if (value.isEmpty()) {
+            Toast.makeText(this, "No value to copy", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText(label, value)
+        clipboard.setPrimaryClip(clip)
+        Toast.makeText(this, getString(R.string.toast_value_copied, label), Toast.LENGTH_SHORT).show()
     }
 
     override fun onResume() {

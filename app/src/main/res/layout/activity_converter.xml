@@ -109,6 +109,7 @@
                     android:layout_height="wrap_content"
                     android:padding="16dp">
 
+                    <!-- Hex -->
                     <TextView
                         android:id="@+id/hex_label"
                         android:layout_width="wrap_content"
@@ -123,14 +124,28 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"
                         android:gravity="end"
                         android:textColor="@android:color/white"
                         android:textStyle="bold"
                         app:layout_constraintBaseline_toBaselineOf="@id/hex_label"
-                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintEnd_toStartOf="@+id/copy_hex_button"
                         app:layout_constraintStart_toEndOf="@id/hex_label"
                         tools:text="AA BB CC DD" />
 
+                    <ImageButton
+                        android:id="@+id/copy_hex_button"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/content_desc_copy_hex"
+                        android:src="@drawable/ic_content_copy_24"
+                        app:layout_constraintBottom_toBottomOf="@id/hex_value"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="@id/hex_value"
+                        app:tint="?attr/colorOnSurfaceVariant" />
+
+                    <!-- Decimal -->
                     <TextView
                         android:id="@+id/dec_label"
                         android:layout_width="wrap_content"
@@ -139,21 +154,35 @@
                         android:text="@string/label_dec"
                         android:textColor="?attr/colorOnSurfaceVariant"
                         app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toBottomOf="@id/hex_label" />
+                        app:layout_constraintTop_toBottomOf="@id/hex_value" />
 
                     <TextView
                         android:id="@+id/dec_value"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"
                         android:gravity="end"
                         android:textColor="@android:color/white"
                         android:textStyle="bold"
                         app:layout_constraintBaseline_toBaselineOf="@id/dec_label"
-                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintEnd_toStartOf="@+id/copy_dec_button"
                         app:layout_constraintStart_toEndOf="@id/dec_label"
                         tools:text="1234567890" />
 
+                    <ImageButton
+                        android:id="@+id/copy_dec_button"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/content_desc_copy_dec"
+                        android:src="@drawable/ic_content_copy_24"
+                        app:layout_constraintBottom_toBottomOf="@id/dec_value"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="@id/dec_value"
+                        app:tint="?attr/colorOnSurfaceVariant" />
+
+                    <!-- Binary -->
                     <TextView
                         android:id="@+id/bin_label"
                         android:layout_width="wrap_content"
@@ -162,20 +191,33 @@
                         android:text="@string/label_bin"
                         android:textColor="?attr/colorOnSurfaceVariant"
                         app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toBottomOf="@id/dec_label" />
+                        app:layout_constraintTop_toBottomOf="@id/dec_value" />
 
                     <TextView
                         android:id="@+id/bin_value"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"
                         android:gravity="end"
                         android:textColor="@android:color/white"
                         android:textStyle="bold"
                         app:layout_constraintBaseline_toBaselineOf="@id/bin_label"
-                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintEnd_toStartOf="@+id/copy_bin_button"
                         app:layout_constraintStart_toEndOf="@id/bin_label"
-                        tools:text="1010101010101010" />
+                        tools:text="10101010 10101010" />
+
+                    <ImageButton
+                        android:id="@+id/copy_bin_button"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/content_desc_copy_bin"
+                        android:src="@drawable/ic_content_copy_24"
+                        app:layout_constraintBottom_toBottomOf="@id/bin_value"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="@id/bin_value"
+                        app:tint="?attr/colorOnSurfaceVariant" />
 
                     <View
                         android:id="@+id/divider"
@@ -187,6 +229,7 @@
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toBottomOf="@id/bin_value" />
 
+                    <!-- Reversed Hex -->
                     <TextView
                         android:id="@+id/rev_hex_label"
                         android:layout_width="wrap_content"
@@ -202,14 +245,28 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"
                         android:gravity="end"
                         android:textColor="@android:color/white"
                         android:textStyle="bold"
                         app:layout_constraintBaseline_toBaselineOf="@id/rev_hex_label"
-                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintEnd_toStartOf="@+id/copy_rev_hex_button"
                         app:layout_constraintStart_toEndOf="@id/rev_hex_label"
                         tools:text="DD CC BB AA" />
 
+                    <ImageButton
+                        android:id="@+id/copy_rev_hex_button"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/content_desc_copy_rev_hex"
+                        android:src="@drawable/ic_content_copy_24"
+                        app:layout_constraintBottom_toBottomOf="@id/rev_hex_value"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="@id/rev_hex_value"
+                        app:tint="?attr/colorOnSurfaceVariant" />
+
+                    <!-- Reversed Decimal -->
                     <TextView
                         android:id="@+id/rev_dec_label"
                         android:layout_width="wrap_content"
@@ -218,21 +275,35 @@
                         android:text="@string/label_reversed_dec"
                         android:textColor="?attr/colorOnSurfaceVariant"
                         app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toBottomOf="@id/rev_hex_label" />
+                        app:layout_constraintTop_toBottomOf="@id/rev_hex_value" />
 
                     <TextView
                         android:id="@+id/rev_dec_value"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"
                         android:gravity="end"
                         android:textColor="@android:color/white"
                         android:textStyle="bold"
                         app:layout_constraintBaseline_toBaselineOf="@id/rev_dec_label"
-                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintEnd_toStartOf="@+id/copy_rev_dec_button"
                         app:layout_constraintStart_toEndOf="@id/rev_dec_label"
                         tools:text="987654321" />
 
+                    <ImageButton
+                        android:id="@+id/copy_rev_dec_button"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/content_desc_copy_rev_dec"
+                        android:src="@drawable/ic_content_copy_24"
+                        app:layout_constraintBottom_toBottomOf="@id/rev_dec_value"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="@id/rev_dec_value"
+                        app:tint="?attr/colorOnSurfaceVariant" />
+
+                    <!-- Reversed Binary -->
                     <TextView
                         android:id="@+id/rev_bin_label"
                         android:layout_width="wrap_content"
@@ -241,20 +312,33 @@
                         android:text="@string/label_reversed_bin"
                         android:textColor="?attr/colorOnSurfaceVariant"
                         app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toBottomOf="@id/rev_dec_label" />
+                        app:layout_constraintTop_toBottomOf="@id/rev_dec_value" />
 
                     <TextView
                         android:id="@+id/rev_bin_value"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"
                         android:gravity="end"
                         android:textColor="@android:color/white"
                         android:textStyle="bold"
                         app:layout_constraintBaseline_toBaselineOf="@id/rev_bin_label"
-                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintEnd_toStartOf="@+id/copy_rev_bin_button"
                         app:layout_constraintStart_toEndOf="@id/rev_bin_label"
-                        tools:text="0101010101010101" />
+                        tools:text="01010101 01010101" />
+
+                    <ImageButton
+                        android:id="@+id/copy_rev_bin_button"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/content_desc_copy_rev_bin"
+                        android:src="@drawable/ic_content_copy_24"
+                        app:layout_constraintBottom_toBottomOf="@id/rev_bin_value"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="@id/rev_bin_value"
+                        app:tint="?attr/colorOnSurfaceVariant" />
 
                 </androidx.constraintlayout.widget.ConstraintLayout>
             </com.google.android.material.card.MaterialCardView>

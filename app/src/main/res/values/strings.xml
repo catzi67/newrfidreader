@@ -53,4 +53,12 @@
         <item>large</item>
     </string-array>
 
+    <string name="content_desc_copy_hex">Copy Hex Value</string>
+    <string name="content_desc_copy_dec">Copy Decimal Value</string>
+    <string name="content_desc_copy_bin">Copy Binary Value</string>
+    <string name="content_desc_copy_rev_hex">Copy Reversed Hex Value</string>
+    <string name="content_desc_copy_rev_dec">Copy Reversed Decimal Value</string>
+    <string name="content_desc_copy_rev_bin">Copy Reversed Binary Value</string>
+    <string name="toast_value_copied">%1$s value copied</string>
+
 </resources>
