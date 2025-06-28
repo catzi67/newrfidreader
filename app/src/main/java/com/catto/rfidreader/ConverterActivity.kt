@@ -4,6 +4,7 @@ import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.util.TypedValue
 import android.view.View
 import android.widget.Button
@@ -27,6 +28,7 @@ class ConverterActivity : AppCompatActivity() {
 
     companion object {
         private const val PREFS_NAME = "NfcAppPrefs"
+        private const val TAG = "ConverterActivity"
     }
 
     private lateinit var inputEditText: TextInputEditText
@@ -98,7 +100,7 @@ class ConverterActivity : AppCompatActivity() {
             val bigInt: BigInteger = when (selectedRadioButton.id) {
                 R.id.radio_hex -> BigInteger(inputText.replace(" ", ""), 16)
                 R.id.radio_dec -> BigInteger(inputText)
-                R.id.radio_bin -> BigInteger(inputText.replace(" ", ""))
+                R.id.radio_bin -> BigInteger(inputText.replace(" ", ""), 2)
                 else -> throw IllegalArgumentException("Invalid input type selected")
             }
 
@@ -122,10 +124,11 @@ class ConverterActivity : AppCompatActivity() {
 
             resultsCard.visibility = View.VISIBLE
 
-        } catch (e: NumberFormatException) {
+        } catch (_: NumberFormatException) {
             Toast.makeText(this, "Invalid number format for the selected type.", Toast.LENGTH_LONG).show()
             resultsCard.visibility = View.INVISIBLE
         } catch (e: Exception) {
+            Log.e(TAG, "An error occurred during conversion", e)
             Toast.makeText(this, "An error occurred: ${e.message}", Toast.LENGTH_LONG).show()
             resultsCard.visibility = View.INVISIBLE
         }
@@ -168,7 +171,7 @@ class ConverterActivity : AppCompatActivity() {
                         val uri = backgroundValue.toUri()
                         loadBackgroundFromUri(uri)
                     } catch (e: Exception) {
-                        e.printStackTrace()
+                        Log.e(TAG, "Failed to parse or load background URI", e)
                         Toast.makeText(this, getString(R.string.toast_failed_to_load_saved_background), Toast.LENGTH_SHORT).show()
                     }
                 }
@@ -189,7 +192,7 @@ class ConverterActivity : AppCompatActivity() {
             val drawable = Drawable.createFromStream(inputStream, uri.toString())
             rootLayout.background = drawable
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Failed to create drawable from URI", e)
             Toast.makeText(this, getString(R.string.toast_failed_to_load_image), Toast.LENGTH_SHORT).show()
         }
     }
