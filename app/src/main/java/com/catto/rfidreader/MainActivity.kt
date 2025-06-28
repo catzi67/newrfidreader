@@ -27,7 +27,6 @@ import com.google.android.material.card.MaterialCardView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
-import java.math.BigInteger
 import java.nio.ByteBuffer
 import kotlin.math.abs
 import kotlin.math.pow
@@ -361,20 +360,5 @@ class MainActivity : AppCompatActivity() {
         val skewedValue = normalizedValue.pow(SCORING_EXPONENT)
         val finalValue = skewedValue * 999
         return finalValue.toInt() + 1
-    }
-
-    private fun bytesToHexString(bytes: ByteArray): String {
-        return bytes.joinToString(" ") { "%02X".format(it) }
-    }
-
-    private fun bytesToDecString(bytes: ByteArray): String {
-        return BigInteger(1, bytes).toString()
-    }
-
-    private fun bytesToBinString(bytes: ByteArray): String {
-        if (bytes.isEmpty()) return ""
-        return bytes.joinToString(" ") { byte ->
-            String.format("%8s", Integer.toBinaryString(byte.toInt() and 0xFF)).replace(' ', '0')
-        }
     }
 }

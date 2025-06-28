@@ -250,21 +250,4 @@ class ConverterActivity : AppCompatActivity() {
             Toast.makeText(this, getString(R.string.toast_failed_to_load_image), Toast.LENGTH_SHORT).show()
         }
     }
-
-    private fun bytesToHexString(bytes: ByteArray): String {
-        if (bytes.isEmpty()) return ""
-        return bytes.joinToString(" ") { "%02X".format(it) }
-    }
-
-    private fun bytesToDecString(bytes: ByteArray): String {
-        if (bytes.isEmpty()) return ""
-        return BigInteger(1, bytes).toString()
-    }
-
-    private fun bytesToBinString(bytes: ByteArray): String {
-        if (bytes.isEmpty()) return ""
-        return bytes.joinToString(" ") { byte ->
-            String.format("%8s", Integer.toBinaryString(byte.toInt() and 0xFF)).replace(' ', '0')
-        }
-    }
 }
