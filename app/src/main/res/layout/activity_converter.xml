@@ -87,6 +87,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:text="@string/button_convert"
+                android:visibility="gone"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/input_type_group" />
@@ -101,7 +102,7 @@
                 app:cardCornerRadius="12dp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/convert_button"
+                app:layout_constraintTop_toBottomOf="@id/input_type_group"
                 tools:visibility="visible">
 
                 <androidx.constraintlayout.widget.ConstraintLayout

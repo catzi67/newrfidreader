@@ -6,10 +6,11 @@ import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.util.TypedValue
 import android.view.View
-import android.widget.Button
 import android.widget.ImageButton
 import android.widget.RadioButton
 import android.widget.RadioGroup
@@ -36,7 +37,6 @@ class ConverterActivity : AppCompatActivity() {
 
     private lateinit var inputEditText: TextInputEditText
     private lateinit var inputTypeGroup: RadioGroup
-    private lateinit var convertButton: Button
     private lateinit var resultsCard: MaterialCardView
     private lateinit var hexValue: TextView
     private lateinit var decValue: TextView
@@ -72,7 +72,6 @@ class ConverterActivity : AppCompatActivity() {
 
         inputEditText = findViewById(R.id.input_edit_text)
         inputTypeGroup = findViewById(R.id.input_type_group)
-        convertButton = findViewById(R.id.convert_button)
         resultsCard = findViewById(R.id.results_card)
         hexValue = findViewById(R.id.hex_value)
         decValue = findViewById(R.id.dec_value)
@@ -88,9 +87,15 @@ class ConverterActivity : AppCompatActivity() {
         copyRevDecButton = findViewById(R.id.copy_rev_dec_button)
         copyRevBinButton = findViewById(R.id.copy_rev_bin_button)
 
-        convertButton.setOnClickListener {
-            performConversion()
-        }
+        inputEditText.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                performConversion()
+            }
+        })
+
+        inputTypeGroup.setOnCheckedChangeListener { _, _ -> performConversion() }
 
         setupCopyButtons()
     }
@@ -125,10 +130,20 @@ class ConverterActivity : AppCompatActivity() {
         return true
     }
 
+    private fun clearResults() {
+        hexValue.text = ""
+        decValue.text = ""
+        binValue.text = ""
+        revHexValue.text = ""
+        revDecValue.text = ""
+        revBinValue.text = ""
+    }
+
     private fun performConversion() {
         val inputText = inputEditText.text.toString().trim()
         if (inputText.isEmpty()) {
-            Toast.makeText(this, "Please enter a value.", Toast.LENGTH_SHORT).show()
+            clearResults()
+            resultsCard.visibility = View.INVISIBLE
             return
         }
 
@@ -164,11 +179,11 @@ class ConverterActivity : AppCompatActivity() {
             resultsCard.visibility = View.VISIBLE
 
         } catch (_: NumberFormatException) {
-            Toast.makeText(this, "Invalid number format for the selected type.", Toast.LENGTH_LONG).show()
+            clearResults()
             resultsCard.visibility = View.INVISIBLE
         } catch (e: Exception) {
             Log.e(TAG, "An error occurred during conversion", e)
-            Toast.makeText(this, "An error occurred: ${e.message}", Toast.LENGTH_LONG).show()
+            clearResults()
             resultsCard.visibility = View.INVISIBLE
         }
     }
