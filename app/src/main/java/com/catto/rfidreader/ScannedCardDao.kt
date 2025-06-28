@@ -14,6 +14,9 @@ interface ScannedCardDao {
     @Query("SELECT * FROM scanned_card_history ORDER BY scanTimestamp DESC")
     fun getAllCards(): Flow<List<ScannedCard>>
 
-    @Query("DELETE FROM scanned_card_history") // <-- ADD THIS
+    @Query("SELECT * FROM scanned_card_history")
+    suspend fun getAllCardsList(): List<ScannedCard>
+
+    @Query("DELETE FROM scanned_card_history")
     suspend fun clearHistory()
 }

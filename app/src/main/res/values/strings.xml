@@ -60,5 +60,11 @@
     <string name="content_desc_copy_rev_dec">Copy Reversed Decimal Value</string>
     <string name="content_desc_copy_rev_bin">Copy Reversed Binary Value</string>
     <string name="toast_value_copied">%1$s value copied</string>
+    <string name="pref_title_haptic_feedback">Haptic Feedback</string>
+    <string name="pref_summary_haptic_feedback">Enable a vibration on button taps</string>
+    <string name="pref_title_visual_signature">Card Signature</string>
+    <string name="pref_summary_visual_signature">Show a unique visual pattern for each card</string>
+    <string name="title_activity_quests">Card Quests</string>
+    <string name="content_desc_quests_button">View Card Quests</string>
 
 </resources>

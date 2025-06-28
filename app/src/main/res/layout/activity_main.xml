@@ -22,6 +22,13 @@
         app:layout_constraintVertical_bias="0.25"
         tools:visibility="visible">
 
+        <com.catto.rfidreader.SignatureView
+            android:id="@+id/signature_view"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:layout_marginBottom="16dp"
+            android:elevation="8dp"/>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/score_card"
             android:layout_width="match_parent"
@@ -358,6 +365,18 @@
             android:padding="16dp"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_history_24"
+            app:tint="@android:color/white" />
+
+        <ImageButton
+            android:id="@+id/quests_button"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/content_desc_quests_button"
+            android:padding="16dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_trophy_24"
             app:tint="@android:color/white" />
 
         <ImageButton

@@ -5,7 +5,10 @@ import android.content.ClipboardManager
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.text.Editable
 import android.text.InputFilter
 import android.text.TextWatcher
@@ -53,6 +56,8 @@ class ConverterActivity : AppCompatActivity() {
     private lateinit var copyRevHexButton: ImageButton
     private lateinit var copyRevDecButton: ImageButton
     private lateinit var copyRevBinButton: ImageButton
+
+    private var hapticsEnabled = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -144,6 +149,20 @@ class ConverterActivity : AppCompatActivity() {
         val clip = ClipData.newPlainText(label, value)
         clipboard.setPrimaryClip(clip)
         Toast.makeText(this, getString(R.string.toast_value_copied, label), Toast.LENGTH_SHORT).show()
+
+        if (hapticsEnabled) {
+            performHapticFeedback()
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun performHapticFeedback() {
+        val vibrator = getSystemService(VIBRATOR_SERVICE) as Vibrator
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+        } else {
+            vibrator.vibrate(50)
+        }
     }
 
     override fun onResume() {
@@ -215,6 +234,9 @@ class ConverterActivity : AppCompatActivity() {
     }
 
     private fun loadAndApplySettings() {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+        hapticsEnabled = prefs.getBoolean("pref_key_haptic_feedback", true)
+
         loadSavedBackground()
         applyTextSize()
     }

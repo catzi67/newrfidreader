@@ -14,9 +14,13 @@
 
     </PreferenceCategory>
 
-
-
     <PreferenceCategory app:title="Appearance">
+
+        <SwitchPreferenceCompat
+            app:key="pref_key_visual_signature"
+            app:title="@string/pref_title_visual_signature"
+            app:summary="@string/pref_summary_visual_signature"
+            app:defaultValue="true" />
 
         <ListPreference
             app:key="pref_key_text_size"
@@ -25,6 +29,12 @@
             app:entries="@array/text_size_entries"
             app:entryValues="@array/text_size_values"
             app:defaultValue="small" />
+
+        <SwitchPreferenceCompat
+            app:key="pref_key_haptic_feedback"
+            app:title="@string/pref_title_haptic_feedback"
+            app:summary="@string/pref_summary_haptic_feedback"
+            app:defaultValue="true" />
 
         <Preference
             android:key="pref_key_set_background_color"
