@@ -7,6 +7,7 @@ import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
+import android.text.InputFilter
 import android.text.TextWatcher
 import android.util.Log
 import android.util.TypedValue
@@ -95,9 +96,34 @@ class ConverterActivity : AppCompatActivity() {
             }
         })
 
-        inputTypeGroup.setOnCheckedChangeListener { _, _ -> performConversion() }
+        inputTypeGroup.setOnCheckedChangeListener { _, _ ->
+            updateInputFilter()
+            inputEditText.text = null
+            performConversion()
+        }
 
+        updateInputFilter()
         setupCopyButtons()
+    }
+
+    private fun updateInputFilter() {
+        val selectedRadioButtonId = inputTypeGroup.checkedRadioButtonId
+        val allowedChars = when (selectedRadioButtonId) {
+            R.id.radio_hex -> "0123456789ABCDEFabcdef "
+            R.id.radio_dec -> "0123456789"
+            R.id.radio_bin -> "01 "
+            else -> ""
+        }
+
+        val inputFilter = InputFilter { source, start, end, _, _, _ ->
+            for (i in start until end) {
+                if (!allowedChars.contains(source[i])) {
+                    return@InputFilter ""
+                }
+            }
+            null
+        }
+        inputEditText.filters = arrayOf(inputFilter)
     }
 
     private fun setupCopyButtons() {
