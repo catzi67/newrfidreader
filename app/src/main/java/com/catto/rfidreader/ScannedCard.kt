@@ -10,11 +10,12 @@ data class ScannedCard(
     val serialNumberHex: String,
     val tagInfo: String,
     val scanTimestamp: Long,
-    // --- ADD THESE NEW FIELDS ---
     val decValue: String,
     val binValue: String,
     val revHexValue: String,
     val revDecValue: String,
     val revBinValue: String,
-    val score: Int
+    val score: Int,
+    var name: String? = null,
+    var notes: String? = null
 )

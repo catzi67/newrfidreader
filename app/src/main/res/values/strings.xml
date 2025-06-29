@@ -67,4 +67,9 @@
     <string name="title_activity_quests">Card Quests</string>
     <string name="content_desc_quests_button">View Card Quests</string>
 
+    <string name="title_activity_edit_card">Edit Card Details</string>
+    <string name="hint_card_name">Card Name (Optional)</string>
+    <string name="hint_card_notes">Notes (Optional)</string>
+    <string name="button_save">Save</string>
+
 </resources>

@@ -1,16 +1,21 @@
 package com.catto.rfidreader
 
+import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
+import android.media.AudioAttributes
+import android.media.AudioFormat
+import android.media.AudioTrack
 import android.util.AttributeSet
+import android.view.MotionEvent
 import android.view.View
-import androidx.core.graphics.createBitmap
-import kotlin.random.Random
+import androidx.core.graphics.toColorInt
+import kotlin.concurrent.thread
+import kotlin.math.sin
 
 class SignatureView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
 
@@ -20,9 +25,16 @@ class SignatureView(context: Context, attrs: AttributeSet?) : View(context, attr
     private val rect = RectF()
     private var cornerRadius = 0f
 
-    private var signatureBitmap: Bitmap? = null
-    private var signatureCanvas: Canvas? = null
-    private val bitmapPaint = Paint(Paint.FILTER_BITMAP_FLAG)
+    // --- Audio Synthesis Variables ---
+    private var audioTrack: AudioTrack? = null
+    private var audioThread: Thread? = null
+    @Volatile private var isPlaying = false
+    @Volatile private var frequency = 440.0 // A4 note as a default
+    private val sampleRate = 44100
+    private val pentatonicScale = doubleArrayOf(261.63, 293.66, 329.63, 392.00, 440.00) // C4, D4, E4, G4, A4
+
+    // --- Touch Interaction Variables ---
+    private var currentlyTouchedBar = -1
 
     init {
         val density = context.resources.displayMetrics.density
@@ -31,82 +43,143 @@ class SignatureView(context: Context, attrs: AttributeSet?) : View(context, attr
 
     fun setCardId(id: ByteArray?) {
         this.cardId = id
-        regenerateSignatureBitmap()
         invalidate()
     }
 
-    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        super.onSizeChanged(w, h, oldw, oldh)
-        if (w > 0 && h > 0) {
-            signatureBitmap?.recycle()
-            signatureBitmap = createBitmap(w, h, Bitmap.Config.ARGB_8888)
-            signatureCanvas = Canvas(signatureBitmap!!)
-            regenerateSignatureBitmap()
+    // --- Sound Generation ---
+    private fun startAudio() {
+        if (audioThread?.isAlive == true) return
+
+        isPlaying = true
+        audioThread = thread(start = true) {
+            val bufferSize = AudioTrack.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT)
+            audioTrack = AudioTrack.Builder()
+                .setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_GAME)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .build()
+                )
+                .setAudioFormat(
+                    AudioFormat.Builder()
+                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                        .setSampleRate(sampleRate)
+                        .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                        .build()
+                )
+                .setBufferSizeInBytes(bufferSize)
+                .build()
+
+            val buffer = ShortArray(bufferSize)
+            var angle = 0.0
+            audioTrack?.play()
+
+            while (isPlaying) {
+                val currentFreq = frequency
+                val angularIncrement = 2 * Math.PI * currentFreq / sampleRate
+
+                for (i in buffer.indices) {
+                    buffer[i] = (sin(angle) * Short.MAX_VALUE).toInt().toShort()
+                    angle += angularIncrement
+                }
+
+                audioTrack?.write(buffer, 0, buffer.size)
+            }
+
+            audioTrack?.stop()
+            audioTrack?.release()
         }
     }
 
-    private fun regenerateSignatureBitmap() {
-        val canvas = signatureCanvas ?: return
-        val id = cardId
+    private fun stopAudio() {
+        isPlaying = false
+        audioThread?.join()
+        audioThread = null
+    }
 
-        if (id == null || id.isEmpty()) {
+    // --- Touch Event Handling ---
+    @SuppressLint("ClickableViewAccessibility")
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (cardId == null) return false
+
+        val x = event.x
+        val barCount = cardId?.size ?: return false
+        val barWidth = width.toFloat() / barCount
+        val touchedBarIndex = (x / barWidth).toInt()
+
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                updateFrequency(touchedBarIndex)
+                startAudio()
+                currentlyTouchedBar = touchedBarIndex
+                invalidate() // Redraw to highlight the bar
+                return true
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (touchedBarIndex != currentlyTouchedBar) {
+                    updateFrequency(touchedBarIndex)
+                    currentlyTouchedBar = touchedBarIndex
+                    invalidate()
+                }
+                return true
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                stopAudio()
+                currentlyTouchedBar = -1
+                invalidate()
+                return true
+            }
+        }
+        return super.onTouchEvent(event)
+    }
+
+    private fun updateFrequency(barIndex: Int) {
+        val id = cardId ?: return
+        if (barIndex < 0 || barIndex >= id.size) return
+
+        val byteValue = id[barIndex].toInt() and 0xFF
+        val scaleIndex = byteValue % pentatonicScale.size
+        val octave = (byteValue / pentatonicScale.size) % 3 // 3 octaves
+        frequency = pentatonicScale[scaleIndex] * Math.pow(2.0, octave.toDouble())
+    }
+
+    // --- Drawing Logic ---
+    override fun onDraw(canvas: Canvas) {
+        val id = cardId
+        if (id == null || id.isEmpty() || width == 0 || height == 0) {
             canvas.drawColor(Color.TRANSPARENT)
             return
         }
-
-        val seed = id.contentHashCode().toLong()
-        val random = Random(seed)
-
-        val baseHue = (id.getOrElse(0) { 0 }.toInt() and 0xFF) / 255f * 360f
-        val saturation = 0.4f + random.nextFloat() * 0.6f
-        val value = 0.5f + random.nextFloat() * 0.4f
-        canvas.drawColor(Color.HSVToColor(floatArrayOf(baseHue, saturation, value)))
-
-        val numShapes = 5 + random.nextInt(15)
-        repeat(numShapes) {
-            val shapeType = random.nextInt(3)
-            val x = random.nextFloat() * width
-            val y = random.nextFloat() * height
-            val size = (random.nextFloat() * 0.3f + 0.05f) * width
-
-            val hue = (baseHue + random.nextInt(-60, 60) + 360) % 360
-            val shapeSaturation = (0.7f + random.nextFloat() * 0.3f).coerceIn(0.7f, 1.0f)
-            val shapeValue = (0.8f + random.nextFloat() * 0.2f).coerceIn(0.8f, 1.0f)
-            val alpha = (random.nextFloat() * 180 + 75).toInt()
-
-            paint.color = Color.HSVToColor(alpha, floatArrayOf(hue, shapeSaturation, shapeValue))
-
-            when (shapeType) {
-                0 -> {
-                    paint.style = Paint.Style.FILL
-                    canvas.drawCircle(x, y, size / 2, paint)
-                }
-                1 -> {
-                    paint.style = Paint.Style.STROKE
-                    paint.strokeWidth = random.nextFloat() * 12f + 4f
-                    canvas.drawRect(x - size / 2, y - size / 2, x + size / 2, y + size / 2, paint)
-                }
-                2 -> {
-                    paint.style = Paint.Style.STROKE
-                    paint.strokeWidth = random.nextFloat() * 8f + 3f
-                    val x2 = (x + random.nextFloat() * 250 - 125).coerceIn(0f, width.toFloat())
-                    val y2 = (y + random.nextFloat() * 250 - 125).coerceIn(0f, height.toFloat())
-                    canvas.drawLine(x, y, x2, y2, paint)
-                }
-            }
-        }
-    }
-
-    override fun onDraw(canvas: Canvas) {
-        super.onDraw(canvas)
 
         path.reset()
         rect.set(0f, 0f, width.toFloat(), height.toFloat())
         path.addRoundRect(rect, cornerRadius, cornerRadius, Path.Direction.CW)
         canvas.clipPath(path)
+        canvas.drawColor("#2C2C2E".toColorInt())
 
-        signatureBitmap?.let {
-            canvas.drawBitmap(it, 0f, 0f, bitmapPaint)
+        val barCount = id.size
+        val barWidth = width.toFloat() / barCount
+        paint.style = Paint.Style.FILL
+
+        for (i in id.indices) {
+            val byteValue = id[i].toInt() and 0xFF
+            val barHeight = (byteValue / 255f) * height.toFloat()
+            val left = i * barWidth
+            val top = height - barHeight
+            val right = left + barWidth
+            val bottom = height.toFloat()
+
+            val hue = (byteValue / 255f) * 120f
+            val saturation = 0.9f
+            val value = 0.85f
+            paint.color = Color.HSVToColor(floatArrayOf(hue, saturation, value))
+            canvas.drawRect(left, top, right, bottom, paint)
+
+            // Highlight the currently touched bar
+            if (i == currentlyTouchedBar) {
+                paint.color = Color.argb(100, 255, 255, 255) // Semi-transparent white
+                canvas.drawRect(left, 0f, right, height.toFloat(), paint)
+            }
         }
     }
 }

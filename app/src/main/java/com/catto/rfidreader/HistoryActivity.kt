@@ -63,6 +63,7 @@ class HistoryAdapter(private val textSizePref: String) : ListAdapter<ScannedCard
     }
 
     class CardViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        private val cardNameView: TextView = itemView.findViewById(R.id.card_name_text)
         private val serialNumberView: TextView = itemView.findViewById(R.id.serial_number_text)
         private val timestampView: TextView = itemView.findViewById(R.id.timestamp_text)
         private val tagInfoView: TextView = itemView.findViewById(R.id.tag_info_text)
@@ -70,6 +71,14 @@ class HistoryAdapter(private val textSizePref: String) : ListAdapter<ScannedCard
 
         fun bind(card: ScannedCard, textSizePref: String) {
             val context = itemView.context
+
+            if (card.name.isNullOrEmpty()) {
+                cardNameView.visibility = View.GONE
+            } else {
+                cardNameView.text = card.name
+                cardNameView.visibility = View.VISIBLE
+            }
+
             tagInfoView.text = card.tagInfo
             serialNumberView.text = context.getString(R.string.history_sn_formatted, card.serialNumberHex)
             timestampView.text = context.getString(R.string.history_scanned_formatted, formatTimestamp(card.scanTimestamp))
@@ -80,6 +89,7 @@ class HistoryAdapter(private val textSizePref: String) : ListAdapter<ScannedCard
                 else -> 12f to 14f // "small"
             }
 
+            cardNameView.setTextSize(TypedValue.COMPLEX_UNIT_SP, valueSize + 2f)
             serialNumberView.setTextSize(TypedValue.COMPLEX_UNIT_SP, valueSize)
             timestampView.setTextSize(TypedValue.COMPLEX_UNIT_SP, labelSize)
             tagInfoView.setTextSize(TypedValue.COMPLEX_UNIT_SP, labelSize)
@@ -108,6 +118,13 @@ class HistoryAdapter(private val textSizePref: String) : ListAdapter<ScannedCard
                 }
                 val shareIntent = Intent.createChooser(sendIntent, "Share Card Details")
                 context.startActivity(shareIntent)
+            }
+
+            itemView.setOnClickListener {
+                val intent = Intent(context, EditCardActivity::class.java).apply {
+                    putExtra(EditCardActivity.EXTRA_CARD_ID, card.id)
+                }
+                context.startActivity(intent)
             }
         }
 
