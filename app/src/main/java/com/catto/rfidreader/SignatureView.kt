@@ -30,12 +30,15 @@ class SignatureView(context: Context, attrs: AttributeSet?) : View(context, attr
     private var audioTrack: AudioTrack? = null
     private var audioThread: Thread? = null
     @Volatile private var isPlaying = false
-    @Volatile private var frequency = 440.0 // A4 note as a default
+    @Volatile private var targetAmplitude = 0.0
+    @Volatile private var currentAmplitude = 0.0
+    @Volatile private var frequency = 440.0
     private val sampleRate = 44100
-    // A single C-Major octave for a more direct relationship between bar height and pitch.
     private val cMajorScale = doubleArrayOf(
         261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25
     )
+    private val ATTACK_TIME_SAMPLES = sampleRate * 0.02 // 20ms attack
+    private val RELEASE_TIME_SAMPLES = sampleRate * 0.08 // 80ms release
 
     // --- Touch Interaction Variables ---
     private var currentlyTouchedBar = -1
@@ -52,53 +55,80 @@ class SignatureView(context: Context, attrs: AttributeSet?) : View(context, attr
 
     // --- Sound Generation ---
     private fun startAudio() {
-        if (audioThread?.isAlive == true) return
+        targetAmplitude = 1.0
+        if (audioThread?.isAlive == true) {
+            return
+        }
 
         isPlaying = true
         audioThread = thread(start = true) {
-            val bufferSize = AudioTrack.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT)
-            audioTrack = AudioTrack.Builder()
-                .setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_GAME)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                        .build()
-                )
-                .setAudioFormat(
-                    AudioFormat.Builder()
-                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                        .setSampleRate(sampleRate)
-                        .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                        .build()
-                )
-                .setBufferSizeInBytes(bufferSize)
-                .build()
-
-            val buffer = ShortArray(bufferSize)
-            var angle = 0.0
-            audioTrack?.play()
-
-            while (isPlaying) {
-                val currentFreq = frequency
-                val angularIncrement = 2 * Math.PI * currentFreq / sampleRate
-
-                for (i in buffer.indices) {
-                    buffer[i] = (sin(angle) * Short.MAX_VALUE).toInt().toShort()
-                    angle += angularIncrement
-                }
-
-                audioTrack?.write(buffer, 0, buffer.size)
-            }
-
-            audioTrack?.stop()
-            audioTrack?.release()
+            audioLoop()
         }
     }
 
-    private fun stopAudio() {
-        isPlaying = false
-        audioThread?.join()
+    private fun audioLoop() {
+        val bufferSize = AudioTrack.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT)
+        val buffer = ShortArray(bufferSize)
+
+        audioTrack = AudioTrack.Builder()
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_GAME)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .build()
+            )
+            .setAudioFormat(
+                AudioFormat.Builder()
+                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                    .setSampleRate(sampleRate)
+                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                    .build()
+            )
+            .setBufferSizeInBytes(bufferSize)
+            .build()
+
+        var angle = 0.0
+        audioTrack?.play()
+
+        while (isPlaying) {
+            val angularIncrement = 2 * Math.PI * frequency / sampleRate
+
+            for (i in buffer.indices) {
+                // Per-sample envelope calculation for a smooth, click-free sound.
+                if (targetAmplitude > currentAmplitude) {
+                    currentAmplitude += 1.0 / ATTACK_TIME_SAMPLES
+                    if (currentAmplitude > 1.0) currentAmplitude = 1.0
+                } else if (targetAmplitude < currentAmplitude) {
+                    currentAmplitude -= 1.0 / RELEASE_TIME_SAMPLES
+                    if (currentAmplitude < 0.0) currentAmplitude = 0.0
+                }
+
+                if (currentAmplitude == 0.0 && targetAmplitude == 0.0) {
+                    // Optimization: if silent, fill buffer with zeros
+                    buffer[i] = 0
+                    continue
+                }
+
+                val sample = (sin(angle) * 0.7 + sin(angle * 2) * 0.3)
+                buffer[i] = (sample * currentAmplitude * Short.MAX_VALUE).toInt().toShort()
+                angle += angularIncrement
+            }
+
+            audioTrack?.write(buffer, 0, buffer.size)
+
+            if (currentAmplitude == 0.0 && targetAmplitude == 0.0) {
+                isPlaying = false
+            }
+        }
+
+        audioTrack?.stop()
+        audioTrack?.release()
         audioThread = null
+    }
+
+
+    private fun stopAudio() {
+        targetAmplitude = 0.0
     }
 
     // --- Touch Event Handling ---
@@ -109,14 +139,14 @@ class SignatureView(context: Context, attrs: AttributeSet?) : View(context, attr
         val x = event.x
         val barCount = cardId?.size ?: return false
         val barWidth = width.toFloat() / barCount
-        val touchedBarIndex = (x / barWidth).toInt()
+        val touchedBarIndex = (x / barWidth).toInt().coerceIn(0, barCount - 1)
 
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 updateFrequency(touchedBarIndex)
                 startAudio()
                 currentlyTouchedBar = touchedBarIndex
-                invalidate() // Redraw to highlight the bar
+                invalidate()
                 return true
             }
             MotionEvent.ACTION_MOVE -> {
@@ -139,15 +169,13 @@ class SignatureView(context: Context, attrs: AttributeSet?) : View(context, attr
 
     private fun updateFrequency(barIndex: Int) {
         val id = cardId ?: return
-        if (barIndex < 0 || barIndex >= id.size) return
+        if (barIndex >= id.size) return
 
         val byteValue = id[barIndex].toInt() and 0xFF
-
-        // Normalize the byte value to a 0.0-1.0 scale.
         val normalizedValue = byteValue / 255f
-        // Map the normalized value directly to the scale's index range.
         val scaleIndex = (normalizedValue * (cMajorScale.size - 1)).roundToInt()
 
+        // Set frequency directly for an immediate note change.
         frequency = cMajorScale[scaleIndex]
     }
 
@@ -183,9 +211,8 @@ class SignatureView(context: Context, attrs: AttributeSet?) : View(context, attr
             paint.color = Color.HSVToColor(floatArrayOf(hue, saturation, value))
             canvas.drawRect(left, top, right, bottom, paint)
 
-            // Highlight the currently touched bar
             if (i == currentlyTouchedBar) {
-                paint.color = Color.argb(100, 255, 255, 255) // Semi-transparent white
+                paint.color = Color.argb(100, 255, 255, 255)
                 canvas.drawRect(left, 0f, right, height.toFloat(), paint)
             }
         }
