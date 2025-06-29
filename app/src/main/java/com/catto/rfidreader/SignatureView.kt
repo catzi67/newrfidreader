@@ -15,6 +15,7 @@ import android.view.MotionEvent
 import android.view.View
 import androidx.core.graphics.toColorInt
 import kotlin.concurrent.thread
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 class SignatureView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
@@ -31,7 +32,10 @@ class SignatureView(context: Context, attrs: AttributeSet?) : View(context, attr
     @Volatile private var isPlaying = false
     @Volatile private var frequency = 440.0 // A4 note as a default
     private val sampleRate = 44100
-    private val pentatonicScale = doubleArrayOf(261.63, 293.66, 329.63, 392.00, 440.00) // C4, D4, E4, G4, A4
+    // A single C-Major octave for a more direct relationship between bar height and pitch.
+    private val cMajorScale = doubleArrayOf(
+        261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25
+    )
 
     // --- Touch Interaction Variables ---
     private var currentlyTouchedBar = -1
@@ -138,9 +142,13 @@ class SignatureView(context: Context, attrs: AttributeSet?) : View(context, attr
         if (barIndex < 0 || barIndex >= id.size) return
 
         val byteValue = id[barIndex].toInt() and 0xFF
-        val scaleIndex = byteValue % pentatonicScale.size
-        val octave = (byteValue / pentatonicScale.size) % 3 // 3 octaves
-        frequency = pentatonicScale[scaleIndex] * Math.pow(2.0, octave.toDouble())
+
+        // Normalize the byte value to a 0.0-1.0 scale.
+        val normalizedValue = byteValue / 255f
+        // Map the normalized value directly to the scale's index range.
+        val scaleIndex = (normalizedValue * (cMajorScale.size - 1)).roundToInt()
+
+        frequency = cMajorScale[scaleIndex]
     }
 
     // --- Drawing Logic ---
