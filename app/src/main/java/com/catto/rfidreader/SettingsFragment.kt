@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.edit
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
@@ -18,8 +19,10 @@ class SettingsFragment : PreferenceFragmentCompat() {
     private val selectImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
             val prefs = preferenceManager.sharedPreferences
-            prefs?.edit()?.putString("pref_key_background_type", "IMAGE")?.apply()
-            prefs?.edit()?.putString("pref_key_background_value", it.toString())?.apply()
+            prefs?.edit {
+                putString("pref_key_background_type", "IMAGE")
+                putString("pref_key_background_value", it.toString())
+            }
             Toast.makeText(requireContext(), "Background image set", Toast.LENGTH_SHORT).show()
         }
     }
@@ -50,7 +53,9 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
     private fun resetHighScore() {
         val prefs = requireActivity().getSharedPreferences("NfcAppPrefs", Context.MODE_PRIVATE)
-        prefs.edit().putInt("high_score", 0).apply()
+        prefs.edit {
+            putInt("high_score", 0)
+        }
         Toast.makeText(requireContext(), "High score reset", Toast.LENGTH_SHORT).show()
     }
 
@@ -70,8 +75,10 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
     private fun resetBackground() {
         val prefs = preferenceManager.sharedPreferences
-        prefs?.edit()?.putString("pref_key_background_type", "COLOR")?.apply()
-        prefs?.edit()?.putString("pref_key_background_value", null)?.apply() // Reset to default
+        prefs?.edit {
+            putString("pref_key_background_type", "COLOR")
+            putString("pref_key_background_value", null) // Reset to default
+        }
         Toast.makeText(requireContext(), "Background reset to default", Toast.LENGTH_SHORT).show()
     }
 }

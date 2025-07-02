@@ -86,15 +86,17 @@ class BattleArenaActivity : AppCompatActivity() {
 
     private fun updateFighterView(fighterBinding: ViewFighterCardBinding, card: ScannedCard?, currentHp: Int? = null) {
         if (card != null) {
-            fighterBinding.fighterName.text = card.name ?: "Card #${card.id}"
+            fighterBinding.fighterName.text = card.name ?: getString(R.string.card_id_placeholder, card.id)
             fighterBinding.fighterSignature.setCardId(card.serialNumberHex.replace(" ", "").chunked(2).map { it.toInt(16).toByte() }.toByteArray())
             card.battleStats?.let {
                 val hp = currentHp ?: it.hp
-                fighterBinding.fighterStats.text = "HP: $hp | ATK: ${it.attack} | DEF: ${it.defense}"
+                // FIX: Use a formatted string resource to avoid concatenation and hardcoded text.
+                fighterBinding.fighterStats.text = getString(R.string.battle_stats_format, hp, it.attack, it.defense)
                 fighterBinding.fighterStats.visibility = View.VISIBLE
             }
         } else {
-            fighterBinding.fighterName.text = "Select Fighter"
+            // FIX: Use a string resource for the default fighter name.
+            fighterBinding.fighterName.text = getString(R.string.select_fighter)
             fighterBinding.fighterSignature.setCardId(null)
             fighterBinding.fighterStats.visibility = View.GONE
         }

@@ -40,7 +40,9 @@ abstract class AppDatabase : RoomDatabase() {
                             }
                         }
                     })
-                    .fallbackToDestructiveMigration()
+                    // FIX: The correct parameter name is 'dropAllTables', not 'recreateAllTables'.
+                    // This resolves the "None of the following candidates is applicable" error.
+                    .fallbackToDestructiveMigration(true)
                     .build()
                 INSTANCE = instance
                 instance

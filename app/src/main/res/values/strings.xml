@@ -81,5 +81,5 @@
     <string name="battle_stats_format">HP: %1$d | ATK: %2$d | DEF: %3$d</string>
     <string name="select_card_stats_format">HP: %1$d | ATK: %2$d | DEF: %3$d | SPD: %4$d | Type: %5$s</string>
     <string name="select_fighter">Select Fighter</string>
-
+    <string name="card_id_placeholder">Card #%1$d</string>
 </resources>
