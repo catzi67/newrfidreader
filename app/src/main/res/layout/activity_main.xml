@@ -380,6 +380,18 @@
             app:tint="@android:color/white" />
 
         <ImageButton
+            android:id="@+id/battle_button"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/content_desc_battle_button"
+            android:padding="16dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_gamepad_24"
+            app:tint="@android:color/white" />
+
+        <ImageButton
             android:id="@+id/converter_button"
             android:layout_width="0dp"
             android:layout_height="64dp"

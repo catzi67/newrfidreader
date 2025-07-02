@@ -30,7 +30,6 @@ import com.google.android.material.card.MaterialCardView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
-import java.nio.ByteBuffer
 import kotlin.math.abs
 import kotlin.math.pow
 
@@ -62,6 +61,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var highScoreValueText: TextView
     private lateinit var historyButton: ImageButton
     private lateinit var questsButton: ImageButton
+    private lateinit var battleButton: ImageButton
     private lateinit var converterButton: ImageButton
     private lateinit var settingsButton: ImageButton
     private lateinit var copyFab: FloatingActionButton
@@ -100,6 +100,7 @@ class MainActivity : AppCompatActivity() {
         highScoreValueText = findViewById(R.id.high_score_value_text)
         historyButton = findViewById(R.id.history_button)
         questsButton = findViewById(R.id.quests_button)
+        battleButton = findViewById(R.id.battle_button)
         converterButton = findViewById(R.id.converter_button)
         settingsButton = findViewById(R.id.settings_button)
         copyFab = findViewById(R.id.fab_copy)
@@ -158,6 +159,9 @@ class MainActivity : AppCompatActivity() {
             val littleEndianBytes = it.id
             val bigEndianBytes = littleEndianBytes.reversedArray()
 
+            val tagInfo = parseTagInfo(it)
+            val battleStats = BattleManager.generateStats(it.id, tagInfo)
+
             val newCard = ScannedCard(
                 serialNumberHex = bytesToHexString(bigEndianBytes),
                 decValue = bytesToDecString(bigEndianBytes),
@@ -166,7 +170,8 @@ class MainActivity : AppCompatActivity() {
                 revDecValue = bytesToDecString(littleEndianBytes),
                 revBinValue = bytesToBinString(littleEndianBytes),
                 score = calculateScore(bigEndianBytes),
-                tagInfo = parseTagInfo(it),
+                tagInfo = tagInfo,
+                battleStats = battleStats,
                 scanTimestamp = System.currentTimeMillis()
             )
 
@@ -216,6 +221,10 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, QuestsActivity::class.java))
         }
 
+        battleButton.setOnClickListener {
+            startActivity(Intent(this, BattleArenaActivity::class.java))
+        }
+
         converterButton.setOnClickListener {
             startActivity(Intent(this, ConverterActivity::class.java))
         }
@@ -247,7 +256,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setControlsEnabled() {
-        // No controls to disable/enable currently
+        // This function is currently not used for any purpose.
     }
 
     private fun resetUI() {
@@ -261,7 +270,6 @@ class MainActivity : AppCompatActivity() {
         nfcTagInfoTextView.text = ""
         signatureView.setCardId(null)
         signatureView.visibility = View.GONE
-
 
         setControlsEnabled()
         copyFab.hide()
@@ -386,7 +394,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun calculateScore(idBytes: ByteArray): Int {
         val paddedBytes = idBytes.copyOf(4)
-        val intValue = ByteBuffer.wrap(paddedBytes).int
+        val intValue = java.nio.ByteBuffer.wrap(paddedBytes).int
         val absValue = abs(intValue.toLong())
         val baseValue = absValue % 1000
         val normalizedValue = baseValue / 999.0

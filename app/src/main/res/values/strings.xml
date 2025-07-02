@@ -71,5 +71,15 @@
     <string name="hint_card_name">Card Name (Optional)</string>
     <string name="hint_card_notes">Notes (Optional)</string>
     <string name="button_save">Save</string>
+    <string name="title_activity_battle_arena">Battle Arena</string>
+    <string name="content_desc_battle_button">Open Battle Arena</string>
+    <string name="button_select_card">Select</string>
+    <string name="title_activity_select_card">Select a Card</string>
+    <string name="button_start_battle">Start Battle</string>
+    <string name="battle_log_placeholder">Select two cards and press "Start Battle" to begin…</string>
+    <string name="versus_symbol">VS</string>
+    <string name="battle_stats_format">HP: %1$d | ATK: %2$d | DEF: %3$d</string>
+    <string name="select_card_stats_format">HP: %1$d | ATK: %2$d | DEF: %3$d | SPD: %4$d | Type: %5$s</string>
+    <string name="select_fighter">Select Fighter</string>
 
 </resources>
