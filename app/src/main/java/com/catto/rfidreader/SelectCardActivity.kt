@@ -81,7 +81,7 @@ class SelectCardAdapter(private val onCardSelected: (ScannedCard) -> Unit) : Lis
         fun bind(card: ScannedCard, onCardSelected: (ScannedCard) -> Unit) {
             nameView.text = card.name ?: "Card #${card.id}"
             card.battleStats?.let {
-                statsView.text = itemView.context.getString(R.string.select_card_stats_format, it.hp, it.attack, it.defense, it.speed, it.elementType.name)
+                statsView.text = itemView.context.getString(R.string.select_card_stats_full_format, it.hp, it.attack, it.defense, it.speed, it.luck, it.elementType.name)
             }
             itemView.setOnClickListener { onCardSelected(card) }
         }

@@ -49,14 +49,11 @@ class BattleArenaActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // This enables the edge-to-edge display.
         WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
         binding = ActivityBattleArenaBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // This listener applies padding to the root view to prevent it from
-        // overlapping with the system bars (status bar, navigation bar).
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, windowInsets ->
             val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
             view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
@@ -90,12 +87,10 @@ class BattleArenaActivity : AppCompatActivity() {
             fighterBinding.fighterSignature.setCardId(card.serialNumberHex.replace(" ", "").chunked(2).map { it.toInt(16).toByte() }.toByteArray())
             card.battleStats?.let {
                 val hp = currentHp ?: it.hp
-                // FIX: Use a formatted string resource to avoid concatenation and hardcoded text.
-                fighterBinding.fighterStats.text = getString(R.string.battle_stats_format, hp, it.attack, it.defense)
+                fighterBinding.fighterStats.text = getString(R.string.battle_stats_full_format, hp, it.attack, it.defense, it.speed, it.luck)
                 fighterBinding.fighterStats.visibility = View.VISIBLE
             }
         } else {
-            // FIX: Use a string resource for the default fighter name.
             fighterBinding.fighterName.text = getString(R.string.select_fighter)
             fighterBinding.fighterSignature.setCardId(null)
             fighterBinding.fighterStats.visibility = View.GONE
@@ -105,8 +100,10 @@ class BattleArenaActivity : AppCompatActivity() {
     private fun startBattle() {
         val p1 = player1Card
         val p2 = player2Card
+        val p1Stats = p1?.battleStats
+        val p2Stats = p2?.battleStats
 
-        if (p1?.battleStats == null || p2?.battleStats == null) {
+        if (p1 == null || p2 == null || p1Stats == null || p2Stats == null) {
             Toast.makeText(this, "Please select two cards to battle.", Toast.LENGTH_SHORT).show()
             return
         }
@@ -119,39 +116,61 @@ class BattleArenaActivity : AppCompatActivity() {
         log("The battle begins!")
 
         lifecycleScope.launch {
-            val fighter1 = p1.battleStats.copy()
-            var hp1 = fighter1.hp
+            var hp1 = p1Stats.hp
+            var hp2 = p2Stats.hp
 
-            val fighter2 = p2.battleStats.copy()
-            var hp2 = fighter2.hp
-
-            // Reset the HP display at the start of the battle
             updateFighterView(binding.player1Card, p1, hp1)
             updateFighterView(binding.player2Card, p2, hp2)
 
-            var isPlayer1Turn = fighter1.speed >= fighter2.speed
+            var isPlayer1Turn = p1Stats.speed >= p2Stats.speed
 
             while (hp1 > 0 && hp2 > 0) {
-                delay(1200) // Pause between turns for dramatic effect
+                delay(1500) // Pause between turns for dramatic effect
 
-                if (isPlayer1Turn) {
-                    val damage = BattleManager.calculateDamage(fighter1, fighter2)
-                    hp2 -= damage
-                    log("${p1.name ?: "Card #${p1.id}"} attacks, dealing $damage damage!")
-                    updateFighterView(binding.player2Card, p2, hp2)
+                val attackerCard = if (isPlayer1Turn) p1 else p2
+                val attackerStats = if (isPlayer1Turn) p1Stats else p2Stats
+                val defenderStats = if (isPlayer1Turn) p2Stats else p1Stats
+                val attackerName = attackerCard.name ?: getString(R.string.card_id_placeholder, attackerCard.id)
+
+                val result = BattleManager.resolveAttack(attackerStats, defenderStats)
+                val turnLog = mutableListOf<String>()
+
+                if (result.isMiss) {
+                    turnLog.add(getString(R.string.battle_log_attack_miss, attackerName))
                 } else {
-                    val damage = BattleManager.calculateDamage(fighter2, fighter1)
-                    hp1 -= damage
-                    log("${p2.name ?: "Card #${p2.id}"} attacks, dealing $damage damage!")
-                    updateFighterView(binding.player1Card, p1, hp1)
+                    turnLog.add(getString(R.string.battle_log_attack_deals_damage, attackerName, result.damage))
+                    if (result.isCritical) turnLog.add(getString(R.string.battle_log_critical_hit))
+                    if (result.isBlocked) turnLog.add(getString(R.string.battle_log_blocked))
+
+                    if (isPlayer1Turn) {
+                        hp2 -= result.damage
+                    } else {
+                        hp1 -= result.damage
+                    }
+
+                    if (result.didCounter && (hp1 > 0 && hp2 > 0)) {
+                        delay(700)
+                        val defenderName = if(isPlayer1Turn) (p2.name ?: getString(R.string.card_id_placeholder, p2.id)) else (p1.name ?: getString(R.string.card_id_placeholder, p1.id))
+                        turnLog.add(getString(R.string.battle_log_counter_attack, defenderName, result.counterDamage))
+                        if (isPlayer1Turn) {
+                            hp1 -= result.counterDamage
+                        } else {
+                            hp2 -= result.counterDamage
+                        }
+                    }
                 }
+
+                log(turnLog.joinToString(" "))
+                updateFighterView(binding.player1Card, p1, hp1)
+                updateFighterView(binding.player2Card, p2, hp2)
 
                 isPlayer1Turn = !isPlayer1Turn
             }
 
             delay(1000)
-            val winnerName = if (hp1 > 0) p1.name ?: "Card #${p1.id}" else p2.name ?: "Card #${p2.id}"
-            log("\n--- The winner is $winnerName! ---")
+            val winner = if (hp1 > 0) p1 else p2
+            val winnerName = winner.name ?: getString(R.string.card_id_placeholder, winner.id)
+            log(getString(R.string.battle_log_winner, winnerName))
 
             binding.startBattleButton.isEnabled = true
             binding.player1Card.selectFighterButton.isEnabled = true
@@ -161,7 +180,6 @@ class BattleArenaActivity : AppCompatActivity() {
 
     private fun log(message: String) {
         binding.battleLogText.append("\n> $message")
-        // Auto-scroll to the bottom
         binding.battleLogScroll.post { binding.battleLogScroll.fullScroll(View.FOCUS_DOWN) }
     }
 

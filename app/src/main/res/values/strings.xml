@@ -82,4 +82,13 @@
     <string name="select_card_stats_format">HP: %1$d | ATK: %2$d | DEF: %3$d | SPD: %4$d | Type: %5$s</string>
     <string name="select_fighter">Select Fighter</string>
     <string name="card_id_placeholder">Card #%1$d</string>
+    <string name="battle_log_attack_miss">"%1$s\'s attack missed!"</string>
+    <string name="battle_log_attack_deals_damage">"%1$s attacks for %2$d damage!"</string>
+    <string name="battle_log_critical_hit">"A critical hit!"</string>
+    <string name="battle_log_blocked">"The attack was partially blocked!"</string>
+    <string name="battle_log_counter_attack">"%1$s counters for %2$d damage!"</string>
+    <string name="battle_log_winner">\n--- The winner is %1$s! ---</string>
+    <string name="battle_stats_full_format">"HP: %1$d | ATK: %2$d | DEF: %3$d\nSPD: %4$d | LCK: %5$d"</string>
+    <string name="select_card_stats_full_format">HP: %1$d | ATK: %2$d | DEF: %3$d | SPD: %4$d | LCK: %5$d | Type: %6$s</string>
+
 </resources>
