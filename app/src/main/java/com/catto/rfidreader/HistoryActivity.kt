@@ -16,10 +16,14 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.asLiveData
+import androidx.lifecycle.viewModelScope
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -49,6 +53,29 @@ class HistoryActivity : AppCompatActivity() {
         historyViewModel.allCards.observe(this) { cards ->
             cards?.let { adapter.submitList(it) }
         }
+
+        // Set up ItemTouchHelper for swipe-to-delete functionality.
+        val itemTouchHelperCallback = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
+            override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
+                return false // We don't want to handle move gestures.
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                val position = viewHolder.adapterPosition
+                val card = adapter.currentList[position]
+                historyViewModel.delete(card)
+
+                // Show a Snackbar with an "Undo" action.
+                Snackbar.make(recyclerView, getString(R.string.card_deleted), Snackbar.LENGTH_LONG)
+                    .setAction(getString(R.string.undo)) {
+                        historyViewModel.insert(card) // Re-insert the card if "Undo" is clicked.
+                    }
+                    .show()
+            }
+        }
+
+        val itemTouchHelper = ItemTouchHelper(itemTouchHelperCallback)
+        itemTouchHelper.attachToRecyclerView(recyclerView)
     }
 }
 
@@ -155,4 +182,14 @@ class HistoryAdapter(private val textSizePref: String) : ListAdapter<ScannedCard
 class HistoryViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = (application as App).database.scannedCardDao()
     val allCards = dao.getAllCards().asLiveData()
+
+    // Function to delete a card.
+    fun delete(card: ScannedCard) = viewModelScope.launch {
+        dao.delete(card)
+    }
+
+    // Function to re-insert a card for the "Undo" action.
+    fun insert(card: ScannedCard) = viewModelScope.launch {
+        dao.insert(card)
+    }
 }
