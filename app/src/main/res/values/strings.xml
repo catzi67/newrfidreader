@@ -90,5 +90,8 @@
     <string name="battle_log_winner">\n--- The winner is %1$s! ---</string>
     <string name="battle_stats_full_format">"HP: %1$d | ATK: %2$d | DEF: %3$d\nSPD: %4$d | LCK: %5$d"</string>
     <string name="select_card_stats_full_format">HP: %1$d | ATK: %2$d | DEF: %3$d | SPD: %4$d | LCK: %5$d | Type: %6$s</string>
+    <string name="content_desc_barcode_scanner_button">Scan a barcode</string>
+    <string name="card_deleted">Card deleted</string>
+    <string name="undo">Undo</string>
 
 </resources>

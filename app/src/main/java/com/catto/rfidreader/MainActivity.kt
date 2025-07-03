@@ -21,6 +21,7 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
 import androidx.core.net.toUri
@@ -30,6 +31,7 @@ import com.google.android.material.card.MaterialCardView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
+import java.math.BigInteger
 import kotlin.math.abs
 import kotlin.math.pow
 
@@ -59,6 +61,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var nfcTagInfoTextView: TextView
     private lateinit var scoreValueText: TextView
     private lateinit var highScoreValueText: TextView
+    private lateinit var barcodeScannerButton: ImageButton
     private lateinit var historyButton: ImageButton
     private lateinit var questsButton: ImageButton
     private lateinit var battleButton: ImageButton
@@ -73,6 +76,15 @@ class MainActivity : AppCompatActivity() {
     private var hapticsEnabled = true
     private var visualSignaturesEnabled = true
     private lateinit var database: AppDatabase
+
+    private val barcodeScannerLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val barcodeValue = result.data?.getStringExtra(BarcodeScannerActivity.EXTRA_BARCODE_VALUE)
+            if (!barcodeValue.isNullOrEmpty()) {
+                handleBarcode(barcodeValue)
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -98,6 +110,7 @@ class MainActivity : AppCompatActivity() {
         nfcTagInfoTextView = findViewById(R.id.nfc_tag_info)
         scoreValueText = findViewById(R.id.score_value_text)
         highScoreValueText = findViewById(R.id.high_score_value_text)
+        barcodeScannerButton = findViewById(R.id.barcode_scanner_button)
         historyButton = findViewById(R.id.history_button)
         questsButton = findViewById(R.id.quests_button)
         battleButton = findViewById(R.id.battle_button)
@@ -140,6 +153,43 @@ class MainActivity : AppCompatActivity() {
         nfcAdapter?.enableForegroundDispatch(this, pendingIntent, null, null)
     }
 
+    private fun handleBarcode(barcodeValue: String) {
+        try {
+            // Treat the barcode string as a decimal number
+            val bigIntValue = BigInteger(barcodeValue)
+
+            // Convert the BigInteger to a byte array (big-endian)
+            val bigEndianBytes = bigIntValue.toByteArray().let {
+                if (it.isNotEmpty() && it[0] == 0.toByte()) it.sliceArray(1 until it.size) else it
+            }
+            val littleEndianBytes = bigEndianBytes.reversedArray()
+
+            val tagInfo = "BARCODE"
+            val battleStats = BattleManager.generateStats(bigEndianBytes, tagInfo)
+            val score = calculateScore(bigEndianBytes)
+
+            // Create the ScannedCard with all numeric conversions
+            val newCard = ScannedCard(
+                serialNumberHex = bytesToHexString(bigEndianBytes),
+                decValue = bytesToDecString(bigEndianBytes),
+                binValue = bytesToBinString(bigEndianBytes),
+                revHexValue = bytesToHexString(littleEndianBytes),
+                revDecValue = bytesToDecString(littleEndianBytes),
+                revBinValue = bytesToBinString(littleEndianBytes),
+                score = score,
+                tagInfo = tagInfo,
+                battleStats = battleStats,
+                scanTimestamp = System.currentTimeMillis()
+            )
+
+            updateUiWithCard(newCard, bigEndianBytes)
+        } catch (e: NumberFormatException) {
+            Log.e(TAG, "Barcode value is not a valid number: $barcodeValue", e)
+            Toast.makeText(this, "Scanned barcode is not a number: $barcodeValue", Toast.LENGTH_LONG).show()
+        }
+    }
+
+
     private fun handleNfcTag(intent: Intent) {
         val tag: Tag? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             intent.getParcelableExtra(NfcAdapter.EXTRA_TAG, Tag::class.java)
@@ -149,16 +199,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         tag?.let {
-            if (visualSignaturesEnabled) {
-                signatureView.setCardId(it.id)
-                signatureView.visibility = View.VISIBLE
-            } else {
-                signatureView.visibility = View.GONE
-            }
-
             val littleEndianBytes = it.id
             val bigEndianBytes = littleEndianBytes.reversedArray()
-
             val tagInfo = parseTagInfo(it)
             val battleStats = BattleManager.generateStats(it.id, tagInfo)
 
@@ -175,44 +217,60 @@ class MainActivity : AppCompatActivity() {
                 scanTimestamp = System.currentTimeMillis()
             )
 
-            hexValue.text = newCard.serialNumberHex
-            decValue.text = newCard.decValue
-            binValue.text = newCard.binValue
-            revHexValue.text = newCard.revHexValue
-            revDecValue.text = newCard.revDecValue
-            revBinValue.text = newCard.revBinValue
-            nfcTagInfoTextView.text = newCard.tagInfo
-            scoreValueText.text = newCard.score.toString()
-
-            if (isGameifyEnabled) {
-                if (newCard.score > highScore) {
-                    highScore = newCard.score
-                    saveHighScore(highScore)
-                    highScoreValueText.text = highScore.toString()
-                    showCongratsSnackbar()
-                }
-                scoreCard.visibility = View.VISIBLE
-            } else {
-                scoreCard.visibility = View.GONE
-            }
-
-            lifecycleScope.launch {
-                database.scannedCardDao().insert(newCard)
-                // After inserting, check for quest completion
-                val allCards = database.scannedCardDao().getAllCardsList()
-                QuestManager.checkQuests(mainLayout, this@MainActivity, newCard, allCards)
-            }
-
-            initialPromptCard.visibility = View.GONE
-            promptCard.visibility = View.VISIBLE
-            cardContainer.visibility = View.VISIBLE
-
-            setControlsEnabled()
-            copyFab.show()
+            updateUiWithCard(newCard, it.id)
         }
     }
 
+    private fun updateUiWithCard(card: ScannedCard, idBytes: ByteArray) {
+        if (visualSignaturesEnabled) {
+            signatureView.setCardId(idBytes)
+            signatureView.visibility = View.VISIBLE
+        } else {
+            signatureView.visibility = View.GONE
+        }
+
+        hexValue.text = card.serialNumberHex
+        decValue.text = card.decValue
+        binValue.text = card.binValue
+        revHexValue.text = card.revHexValue
+        revDecValue.text = card.revDecValue
+        revBinValue.text = card.revBinValue
+        nfcTagInfoTextView.text = card.tagInfo
+        scoreValueText.text = card.score.toString()
+
+        if (isGameifyEnabled) {
+            if (card.score > highScore) {
+                highScore = card.score
+                saveHighScore(highScore)
+                highScoreValueText.text = highScore.toString()
+                showCongratsSnackbar()
+            }
+            scoreCard.visibility = View.VISIBLE
+        } else {
+            scoreCard.visibility = View.GONE
+        }
+
+        lifecycleScope.launch {
+            database.scannedCardDao().insert(card)
+            val allCards = database.scannedCardDao().getAllCardsList()
+            QuestManager.checkQuests(mainLayout, this@MainActivity, card, allCards)
+        }
+
+        initialPromptCard.visibility = View.GONE
+        promptCard.visibility = View.VISIBLE
+        cardContainer.visibility = View.VISIBLE
+
+        setControlsEnabled()
+        copyFab.show()
+    }
+
+
     private fun setupButtonListeners() {
+        barcodeScannerButton.setOnClickListener {
+            val intent = Intent(this, BarcodeScannerActivity::class.java)
+            barcodeScannerLauncher.launch(intent)
+        }
+
         historyButton.setOnClickListener {
             startActivity(Intent(this, HistoryActivity::class.java))
         }
@@ -393,7 +451,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun calculateScore(idBytes: ByteArray): Int {
-        val paddedBytes = idBytes.copyOf(4)
+        if (idBytes.isEmpty()) return 0
+        val paddedBytes = if (idBytes.size < 4) idBytes + ByteArray(4 - idBytes.size) else idBytes.copyOf(4)
         val intValue = java.nio.ByteBuffer.wrap(paddedBytes).int
         val absValue = abs(intValue.toLong())
         val baseValue = absValue % 1000
