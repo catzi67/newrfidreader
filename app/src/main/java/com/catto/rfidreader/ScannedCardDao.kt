@@ -10,14 +10,12 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ScannedCardDao {
-    // The conflict strategy is changed to REPLACE to allow the "Undo" feature to re-insert a deleted card.
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(card: ScannedCard)
 
     @Update
     suspend fun update(card: ScannedCard)
 
-    // A new function to delete a card from the database.
     @Delete
     suspend fun delete(card: ScannedCard)
 
@@ -32,4 +30,7 @@ interface ScannedCardDao {
 
     @Query("DELETE FROM scanned_card_history")
     suspend fun clearHistory()
+
+    @Query("SELECT * FROM scanned_card_history ORDER BY eloRating DESC")
+    fun getLeaderboard(): Flow<List<ScannedCard>>
 }

@@ -93,5 +93,13 @@
     <string name="content_desc_barcode_scanner_button">Scan a barcode</string>
     <string name="card_deleted">Card deleted</string>
     <string name="undo">Undo</string>
+    <!-- ... existing strings ... -->
+    <string name="title_activity_leaderboard">Battle Leaderboard</string>
+    <string name="content_desc_leaderboard_button">View Battle Leaderboard</string>
+    <string name="leaderboard_header_rank">Rank</string>
+    <string name="leaderboard_header_card">Card</string>
+    <string name="leaderboard_header_wins">Wins</string>
+    <string name="leaderboard_header_losses">Losses</string>
+    <string name="leaderboard_header_rating">Rating</string>
 
 </resources>

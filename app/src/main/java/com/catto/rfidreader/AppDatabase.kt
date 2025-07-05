@@ -10,7 +10,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-@Database(entities = [ScannedCard::class, Quest::class], version = 6, exportSchema = false)
+// Database version incremented to 8 to account for the new fields in ScannedCard.
+@Database(entities = [ScannedCard::class, Quest::class], version = 8, exportSchema = false)
 @TypeConverters(CardStatsConverter::class)
 abstract class AppDatabase : RoomDatabase() {
 
@@ -40,8 +41,6 @@ abstract class AppDatabase : RoomDatabase() {
                             }
                         }
                     })
-                    // FIX: The correct parameter name is 'dropAllTables', not 'recreateAllTables'.
-                    // This resolves the "None of the following candidates is applicable" error.
                     .fallbackToDestructiveMigration(true)
                     .build()
                 INSTANCE = instance

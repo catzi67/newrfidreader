@@ -15,6 +15,8 @@ import com.catto.rfidreader.databinding.ActivityBattleArenaBinding
 import com.catto.rfidreader.databinding.ViewFighterCardBinding
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.pow
+import kotlin.math.roundToInt
 
 class BattleArenaActivity : AppCompatActivity() {
 
@@ -169,14 +171,40 @@ class BattleArenaActivity : AppCompatActivity() {
 
             delay(1000)
             val winner = if (hp1 > 0) p1 else p2
+            val loser = if (hp1 > 0) p2 else p1
             val winnerName = winner.name ?: getString(R.string.card_id_placeholder, winner.id)
             log(getString(R.string.battle_log_winner, winnerName))
+
+            updateCardStatsAfterBattle(winner, loser)
 
             binding.startBattleButton.isEnabled = true
             binding.player1Card.selectFighterButton.isEnabled = true
             binding.player2Card.selectFighterButton.isEnabled = true
         }
     }
+
+    private suspend fun updateCardStatsAfterBattle(winner: ScannedCard, loser: ScannedCard) {
+        winner.wins++
+        loser.losses++
+
+        val (newWinnerRating, newLoserRating) = calculateEloRating(winner.eloRating, loser.eloRating)
+        winner.eloRating = newWinnerRating
+        loser.eloRating = newLoserRating
+
+        dao.update(winner)
+        dao.update(loser)
+    }
+
+    private fun calculateEloRating(winnerRating: Int, loserRating: Int, kFactor: Int = 32): Pair<Int, Int> {
+        val expectedWinner = 1.0 / (1.0 + 10.0.pow((loserRating - winnerRating) / 400.0))
+        val expectedLoser = 1.0 / (1.0 + 10.0.pow((winnerRating - loserRating) / 400.0))
+
+        val newWinnerRating = winnerRating + kFactor * (1 - expectedWinner)
+        val newLoserRating = loserRating + kFactor * (0 - expectedLoser)
+
+        return Pair(newWinnerRating.roundToInt(), newLoserRating.roundToInt())
+    }
+
 
     private fun log(message: String) {
         binding.battleLogText.append("\n> $message")

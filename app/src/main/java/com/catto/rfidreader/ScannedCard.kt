@@ -3,8 +3,6 @@ package com.catto.rfidreader
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-// The @TypeConverters annotation has been removed from this file.
-// It correctly resides only on the AppDatabase class.
 @Entity(tableName = "scanned_card_history")
 data class ScannedCard(
     @PrimaryKey(autoGenerate = true)
@@ -20,5 +18,8 @@ data class ScannedCard(
     val score: Int,
     var name: String? = null,
     var notes: String? = null,
-    val battleStats: CardStats? = null
+    val battleStats: CardStats? = null,
+    var wins: Int = 0,
+    var losses: Int = 0,
+    var eloRating: Int = 1200 // Default Elo rating
 )

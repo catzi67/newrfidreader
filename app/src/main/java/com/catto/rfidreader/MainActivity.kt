@@ -65,6 +65,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var historyButton: ImageButton
     private lateinit var questsButton: ImageButton
     private lateinit var battleButton: ImageButton
+    private lateinit var leaderboardButton: ImageButton
     private lateinit var converterButton: ImageButton
     private lateinit var settingsButton: ImageButton
     private lateinit var copyFab: FloatingActionButton
@@ -114,6 +115,7 @@ class MainActivity : AppCompatActivity() {
         historyButton = findViewById(R.id.history_button)
         questsButton = findViewById(R.id.quests_button)
         battleButton = findViewById(R.id.battle_button)
+        leaderboardButton = findViewById(R.id.leaderboard_button)
         converterButton = findViewById(R.id.converter_button)
         settingsButton = findViewById(R.id.settings_button)
         copyFab = findViewById(R.id.fab_copy)
@@ -281,6 +283,10 @@ class MainActivity : AppCompatActivity() {
 
         battleButton.setOnClickListener {
             startActivity(Intent(this, BattleArenaActivity::class.java))
+        }
+
+        leaderboardButton.setOnClickListener {
+            startActivity(Intent(this, LeaderboardActivity::class.java))
         }
 
         converterButton.setOnClickListener {
