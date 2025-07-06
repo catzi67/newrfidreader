@@ -141,6 +141,8 @@ class BattleArenaActivity : AppCompatActivity() {
                     turnLog.add(getString(R.string.battle_log_attack_miss, attackerName))
                 } else {
                     turnLog.add(getString(R.string.battle_log_attack_deals_damage, attackerName, result.damage))
+                    if (result.isSuperEffective) turnLog.add(getString(R.string.battle_log_super_effective))
+                    if (result.isNotVeryEffective) turnLog.add(getString(R.string.battle_log_not_effective))
                     if (result.isCritical) turnLog.add(getString(R.string.battle_log_critical_hit))
                     if (result.isBlocked) turnLog.add(getString(R.string.battle_log_blocked))
 

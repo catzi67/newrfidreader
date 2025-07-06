@@ -18,3 +18,11 @@ fun bytesToBinString(bytes: ByteArray): String {
         String.format("%8s", Integer.toBinaryString(byte.toInt() and 0xFF)).replace(' ', '0')
     }
 }
+
+// Converts a space-separated hex string back into a byte array.
+fun hexStringToByteArray(hex: String): ByteArray {
+    return hex.split(" ")
+        .filter { it.isNotEmpty() }
+        .map { it.toInt(16).toByte() }
+        .toByteArray()
+}

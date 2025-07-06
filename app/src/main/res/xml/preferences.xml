@@ -65,6 +65,11 @@
             android:title="Clear card history"
             android:summary="Permanently deletes all saved card scans"/>
 
+        <Preference
+            android:key="pref_key_recalculate_stats"
+            android:title="@string/pref_title_recalculate_stats"
+            android:summary="@string/pref_summary_recalculate_stats"/>
+
     </PreferenceCategory>
 
 </PreferenceScreen>

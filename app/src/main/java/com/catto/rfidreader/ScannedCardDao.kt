@@ -1,11 +1,6 @@
 package com.catto.rfidreader
 
-import androidx.room.Dao
-import androidx.room.Delete
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
-import androidx.room.Update
+import androidx.room.*
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -15,6 +10,9 @@ interface ScannedCardDao {
 
     @Update
     suspend fun update(card: ScannedCard)
+
+    @Update
+    suspend fun updateAll(cards: List<ScannedCard>)
 
     @Delete
     suspend fun delete(card: ScannedCard)

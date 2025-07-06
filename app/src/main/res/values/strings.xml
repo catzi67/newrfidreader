@@ -93,7 +93,12 @@
     <string name="content_desc_barcode_scanner_button">Scan a barcode</string>
     <string name="card_deleted">Card deleted</string>
     <string name="undo">Undo</string>
-    <!-- ... existing strings ... -->
+    <string name="pref_title_recalculate_stats">Recalculate All Card Stats</string>
+    <string name="pref_summary_recalculate_stats">Updates all saved cards with the latest battle logic. This can\'t be undone.</string>
+    <string name="dialog_title_recalculate_stats">Recalculate Stats?</string>
+    <string name="dialog_message_recalculate_stats">This will update all your saved cards to the newest battle formula. This process cannot be undone. Are you sure you want to continue?</string>
+    <string name="toast_recalculation_complete">All card stats have been updated.</string>
+    <string name="toast_recalculation_failed">Failed to recalculate stats.</string>
     <string name="title_activity_leaderboard">Battle Leaderboard</string>
     <string name="content_desc_leaderboard_button">View Battle Leaderboard</string>
     <string name="leaderboard_header_rank">Rank</string>
@@ -101,5 +106,6 @@
     <string name="leaderboard_header_wins">Wins</string>
     <string name="leaderboard_header_losses">Losses</string>
     <string name="leaderboard_header_rating">Rating</string>
-
+    <string name="battle_log_super_effective">"It's super effective!"</string>
+    <string name="battle_log_not_effective">"It's not very effective…"</string>
 </resources>
