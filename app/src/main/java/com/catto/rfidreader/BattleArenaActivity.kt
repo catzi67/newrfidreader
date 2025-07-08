@@ -1,90 +1,101 @@
 package com.catto.rfidreader
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.net.wifi.p2p.WifiP2pConfig
+import android.net.wifi.p2p.WifiP2pDevice
+import android.net.wifi.p2p.WifiP2pInfo
+import android.net.wifi.p2p.WifiP2pManager
+import android.os.Build
 import android.os.Bundle
 import android.text.method.ScrollingMovementMethod
+import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.RecyclerView
 import com.catto.rfidreader.databinding.ActivityBattleArenaBinding
 import com.catto.rfidreader.databinding.ViewFighterCardBinding
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
+import java.net.InetAddress
+import java.net.InetSocketAddress
+import java.net.ServerSocket
+import java.net.Socket
+import java.util.Random
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
-class BattleArenaActivity : AppCompatActivity() {
+private const val TAG = "BattleArenaActivity"
+
+@SuppressLint("MissingPermission")
+class BattleArenaActivity : AppCompatActivity(), WifiP2pManager.ConnectionInfoListener {
+
+    private enum class BattleMode { NONE, LOCAL, P2P_HOST, P2P_CLIENT }
+    private data class P2pMessage(val card: ScannedCard, val seed: Long? = null)
 
     private lateinit var binding: ActivityBattleArenaBinding
-    private var player1Card: ScannedCard? = null
-    private var player2Card: ScannedCard? = null
-
     private val dao by lazy { (application as App).database.scannedCardDao() }
 
-    companion object {
-        const val EXTRA_PLAYER_1_CARD = "extra_player_1_card"
-        const val EXTRA_PLAYER_2_CARD = "extra_player_2_card"
-    }
+    // --- State Variables ---
+    private var battleMode = BattleMode.NONE
+    private var player1Card: ScannedCard? = null
+    private var player2Card: ScannedCard? = null
+    private var battleSeed: Long = 0L
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        super.onCreate(savedInstanceState)
-        binding = ActivityBattleArenaBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+    // --- P2P Variables ---
+    private val wifiP2pManager: WifiP2pManager by lazy { getSystemService(WIFI_P2P_SERVICE) as WifiP2pManager }
+    private lateinit var channel: WifiP2pManager.Channel
+    private lateinit var receiver: BroadcastReceiver
+    private lateinit var intentFilter: IntentFilter
+    private val peers = mutableListOf<WifiP2pDevice>()
+    private lateinit var peerListAdapter: PeerListAdapter
+    private var serverThread: ServerThread? = null
+    private var clientThread: ClientThread? = null
+    private var isHost = false
 
-        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, windowInsets ->
-            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
-            windowInsets
-        }
-
-        setSupportActionBar(binding.battleArenaToolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-
-        if (intent.hasExtra(EXTRA_PLAYER_1_CARD) && intent.hasExtra(EXTRA_PLAYER_2_CARD)) {
-            val p1Json = intent.getStringExtra(EXTRA_PLAYER_1_CARD)
-            val p2Json = intent.getStringExtra(EXTRA_PLAYER_2_CARD)
-            player1Card = Gson().fromJson(p1Json, ScannedCard::class.java)
-            player2Card = Gson().fromJson(p2Json, ScannedCard::class.java)
-            binding.player1Card.selectFighterButton.visibility = View.GONE
-            binding.player2Card.selectFighterButton.visibility = View.GONE
-            binding.startBattleButton.visibility = View.GONE
-            startBattle()
+    // --- Activity Result Launchers ---
+    private val permissionsLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
+        if (permissions[Manifest.permission.ACCESS_FINE_LOCATION] != true ||
+            (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && permissions[Manifest.permission.NEARBY_WIFI_DEVICES] != true)) {
+            Toast.makeText(this, getString(R.string.p2p_permission_required), Toast.LENGTH_LONG).show()
+            showModeSelection() // Go back to mode selection if permissions denied
         } else {
-            setupLocalBattle()
+            // Permissions granted, proceed with P2P setup
+            if (battleMode == BattleMode.P2P_HOST || battleMode == BattleMode.P2P_CLIENT) {
+                setupP2P()
+            }
         }
-
-        binding.battleLogText.movementMethod = ScrollingMovementMethod()
-    }
-
-    private fun setupLocalBattle() {
-        binding.player1Card.selectFighterButton.setOnClickListener {
-            selectPlayer1Launcher.launch(Intent(this, SelectCardActivity::class.java))
-        }
-        binding.player2Card.selectFighterButton.setOnClickListener {
-            selectPlayer2Launcher.launch(Intent(this, SelectCardActivity::class.java))
-        }
-        binding.startBattleButton.setOnClickListener {
-            startBattle()
-        }
-        updateFighterView(binding.player1Card, null)
-        updateFighterView(binding.player2Card, null)
     }
 
     private val selectPlayer1Launcher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
-            val cardId = result.data?.getIntExtra(SelectCardActivity.EXTRA_SELECTED_CARD_ID, -1) ?: -1
+            val cardId = result.data?.getIntExtra(CollectionActivity.EXTRA_SELECTED_CARD_ID, -1) ?: -1
             if (cardId != -1) {
                 lifecycleScope.launch {
                     player1Card = dao.getCardById(cardId)
                     updateFighterView(binding.player1Card, player1Card)
+                    checkBattleReady()
                 }
             }
         }
@@ -92,13 +103,120 @@ class BattleArenaActivity : AppCompatActivity() {
 
     private val selectPlayer2Launcher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
-            val cardId = result.data?.getIntExtra(SelectCardActivity.EXTRA_SELECTED_CARD_ID, -1) ?: -1
+            val cardId = result.data?.getIntExtra(CollectionActivity.EXTRA_SELECTED_CARD_ID, -1) ?: -1
             if (cardId != -1) {
                 lifecycleScope.launch {
                     player2Card = dao.getCardById(cardId)
                     updateFighterView(binding.player2Card, player2Card)
+                    checkBattleReady()
                 }
             }
+        }
+    }
+
+    // --- Activity Lifecycle ---
+    override fun onCreate(savedInstanceState: Bundle?) {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        super.onCreate(savedInstanceState)
+        binding = ActivityBattleArenaBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        setupWindow()
+        setupUI()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (battleMode == BattleMode.P2P_HOST || battleMode == BattleMode.P2P_CLIENT) {
+            if(this::receiver.isInitialized) {
+                registerReceiver(receiver, intentFilter)
+            }
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (battleMode == BattleMode.P2P_HOST || battleMode == BattleMode.P2P_CLIENT) {
+            if(this::receiver.isInitialized) {
+                unregisterReceiver(receiver)
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        serverThread?.interrupt()
+        clientThread?.interrupt()
+        if (battleMode == BattleMode.P2P_HOST || battleMode == BattleMode.P2P_CLIENT) {
+            if (this::channel.isInitialized) {
+                wifiP2pManager.removeGroup(channel, null)
+            }
+        }
+    }
+
+    // --- UI Setup and Management ---
+    private fun setupWindow() {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, windowInsets ->
+            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
+            windowInsets
+        }
+        setSupportActionBar(binding.battleArenaToolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+    }
+
+    private fun setupUI() {
+        binding.battleLogText.movementMethod = ScrollingMovementMethod()
+        showModeSelection()
+
+        binding.localBattleButton.setOnClickListener {
+            battleMode = BattleMode.LOCAL
+            showFighterSelection()
+        }
+        binding.hostP2pButton.setOnClickListener {
+            battleMode = BattleMode.P2P_HOST
+            checkAndRequestPermissions()
+        }
+        binding.joinP2pButton.setOnClickListener {
+            battleMode = BattleMode.P2P_CLIENT
+            checkAndRequestPermissions()
+        }
+
+        binding.player1Card.selectFighterButton.setOnClickListener {
+            launchCardSelection(selectPlayer1Launcher)
+        }
+        binding.player2Card.selectFighterButton.setOnClickListener {
+            launchCardSelection(selectPlayer2Launcher)
+        }
+    }
+
+    private fun showModeSelection() {
+        binding.battleArenaToolbar.title = getString(R.string.title_activity_battle_setup)
+        binding.modeSelectionContainer.isVisible = true
+        binding.battleViewGroup.isVisible = false
+        binding.peersRecyclerView.isVisible = false
+    }
+
+    private fun showFighterSelection() {
+        binding.battleArenaToolbar.title = getString(R.string.title_activity_battle_arena)
+        binding.modeSelectionContainer.isVisible = false
+        binding.battleViewGroup.isVisible = true
+        binding.battleLogText.text = getString(R.string.battle_log_placeholder)
+
+        updateFighterView(binding.player1Card, null)
+        updateFighterView(binding.player2Card, null)
+
+        when (battleMode) {
+            BattleMode.LOCAL -> {
+                binding.player1Card.selectFighterButton.isVisible = true
+                binding.player2Card.selectFighterButton.isVisible = true
+            }
+            BattleMode.P2P_HOST, BattleMode.P2P_CLIENT -> {
+                binding.player1Card.selectFighterButton.isVisible = true
+                binding.player2Card.selectFighterButton.isVisible = false // Opponent card comes from network
+                binding.battleLogText.text = getString(R.string.p2p_status_waiting_for_card)
+            }
+            else -> {}
         }
     }
 
@@ -111,49 +229,59 @@ class BattleArenaActivity : AppCompatActivity() {
                 fighterBinding.fighterStats.text = getString(R.string.battle_stats_full_format, hp, it.attack, it.defense, it.speed, it.luck)
                 fighterBinding.fighterStats.visibility = View.VISIBLE
             }
+            fighterBinding.selectFighterButton.visibility = View.GONE
         } else {
             fighterBinding.fighterName.text = getString(R.string.select_fighter)
             fighterBinding.fighterSignature.setCardId(null)
             fighterBinding.fighterStats.visibility = View.GONE
+            fighterBinding.selectFighterButton.visibility = View.VISIBLE
+        }
+    }
+
+    // --- Battle Logic ---
+    private fun checkBattleReady() {
+        if (battleMode == BattleMode.LOCAL && player1Card != null && player2Card != null) {
+            startBattle()
+        } else if (battleMode == BattleMode.P2P_HOST && player1Card != null) {
+            binding.battleLogText.text = getString(R.string.p2p_status_hosting)
+            wifiP2pManager.createGroup(channel, null) // Host the game
+        } else if (battleMode == BattleMode.P2P_CLIENT && player1Card != null) {
+            binding.battleLogText.text = getString(R.string.p2p_status_finding_opponents)
+            binding.peersRecyclerView.isVisible = true
+            wifiP2pManager.discoverPeers(channel, null)
         }
     }
 
     private fun startBattle() {
-        val p1 = player1Card
-        val p2 = player2Card
-        val p1Stats = p1?.battleStats
-        val p2Stats = p2?.battleStats
-
-        if (p1 == null || p2 == null || p1Stats == null || p2Stats == null) {
-            Toast.makeText(this, "Please select two cards to battle.", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        binding.startBattleButton.isEnabled = false
+        binding.battleViewGroup.isVisible = true
+        binding.modeSelectionContainer.isVisible = false
+        binding.peersRecyclerView.isVisible = false
         binding.player1Card.selectFighterButton.isEnabled = false
         binding.player2Card.selectFighterButton.isEnabled = false
 
         binding.battleLogText.text = ""
         log("The battle begins!")
 
+        val p1 = player1Card!!
+        val p2 = player2Card!!
+        val p1Stats = p1.battleStats!!
+        val p2Stats = p2.battleStats!!
+
+        val seed = if (battleMode == BattleMode.LOCAL) System.currentTimeMillis() else this.battleSeed
+        val random = Random(seed)
+
         lifecycleScope.launch(Dispatchers.Main) {
             var hp1 = p1Stats.hp
             var hp2 = p2Stats.hp
-
             updateFighterView(binding.player1Card, p1, hp1)
             updateFighterView(binding.player2Card, p2, hp2)
-
             var isPlayer1Turn = p1Stats.speed >= p2Stats.speed
 
             while (hp1 > 0 && hp2 > 0) {
                 delay(1500)
-
-                val attackerCard = if (isPlayer1Turn) p1 else p2
-                val attackerStats = if (isPlayer1Turn) p1Stats else p2Stats
-                val defenderStats = if (isPlayer1Turn) p2Stats else p1Stats
+                val (attackerCard, attackerStats, defenderStats) = if (isPlayer1Turn) Triple(p1, p1Stats, p2Stats) else Triple(p2, p2Stats, p1Stats)
                 val attackerName = attackerCard.name ?: getString(R.string.card_id_placeholder, attackerCard.id)
-
-                val result = BattleManager.resolveAttack(attackerStats, defenderStats)
+                val result = BattleManager.resolveAttack(attackerStats, defenderStats, random)
                 val turnLog = mutableListOf<String>()
 
                 if (result.isMiss) {
@@ -165,40 +293,24 @@ class BattleArenaActivity : AppCompatActivity() {
                     if (result.isCritical) turnLog.add(getString(R.string.battle_log_critical_hit))
                     if (result.isBlocked) turnLog.add(getString(R.string.battle_log_blocked))
 
-                    if (isPlayer1Turn) {
-                        hp2 -= result.damage
-                    } else {
-                        hp1 -= result.damage
-                    }
+                    if (isPlayer1Turn) hp2 -= result.damage else hp1 -= result.damage
 
-                    if (result.didCounter && (hp1 > 0 && hp2 > 0)) {
+                    if (result.didCounter && hp1 > 0 && hp2 > 0) {
                         delay(700)
-                        val defenderName = if(isPlayer1Turn) (p2.name ?: getString(R.string.card_id_placeholder, p2.id)) else (p1.name ?: getString(R.string.card_id_placeholder, p1.id))
+                        val defenderName = if(isPlayer1Turn) (p2.name ?: "Card #${p2.id}") else (p1.name ?: "Card #${p1.id}")
                         turnLog.add(getString(R.string.battle_log_counter_attack, defenderName, result.counterDamage))
-                        if (isPlayer1Turn) {
-                            hp1 -= result.counterDamage
-                        } else {
-                            hp2 -= result.counterDamage
-                        }
+                        if (isPlayer1Turn) hp1 -= result.counterDamage else hp2 -= result.counterDamage
                     }
                 }
-
                 log(turnLog.joinToString(" "))
                 updateFighterView(binding.player1Card, p1, hp1)
                 updateFighterView(binding.player2Card, p2, hp2)
-
                 isPlayer1Turn = !isPlayer1Turn
             }
-
             delay(1000)
-            val winner = if (hp1 > 0) p1 else p2
-            val loser = if (hp1 > 0) p2 else p1
-            val winnerName = winner.name ?: getString(R.string.card_id_placeholder, winner.id)
-            log(getString(R.string.battle_log_winner, winnerName))
-
+            val (winner, loser) = if (hp1 > 0) (p1 to p2) else (p2 to p1)
+            log(getString(R.string.battle_log_winner, winner.name ?: "Card #${winner.id}"))
             updateCardStatsAfterBattle(winner, loser)
-
-            binding.startBattleButton.isEnabled = true
             binding.player1Card.selectFighterButton.isEnabled = true
             binding.player2Card.selectFighterButton.isEnabled = true
         }
@@ -207,38 +319,21 @@ class BattleArenaActivity : AppCompatActivity() {
     private suspend fun updateCardStatsAfterBattle(winner: ScannedCard, loser: ScannedCard) {
         val dbWinner = dao.getCardBySerialNumber(winner.serialNumberHex)
         val dbLoser = dao.getCardBySerialNumber(loser.serialNumberHex)
-
-        if(dbWinner != null && dbLoser != null) {
+        if (dbWinner != null && dbLoser != null) {
             dbWinner.wins++
             dbLoser.losses++
-
             val (newWinnerRating, newLoserRating) = calculateEloRating(dbWinner.eloRating, dbLoser.eloRating)
             dbWinner.eloRating = newWinnerRating
             dbLoser.eloRating = newLoserRating
-
             dao.update(dbWinner)
             dao.update(dbLoser)
-        } else {
-            dbWinner?.let {
-                it.wins++
-                val (newRating, _) = calculateEloRating(it.eloRating, loser.eloRating)
-                it.eloRating = newRating
-                dao.update(it)
-            }
-            dbLoser?.let {
-                it.losses++
-                val (_, newRating) = calculateEloRating(winner.eloRating, it.eloRating)
-                it.eloRating = newRating
-                dao.update(it)
-            }
         }
     }
 
     private fun calculateEloRating(winnerRating: Int, loserRating: Int, kFactor: Int = 32): Pair<Int, Int> {
         val expectedWinner = 1.0 / (1.0 + 10.0.pow((loserRating - winnerRating) / 400.0))
-        val expectedLoser = 1.0 / (1.0 + 10.0.pow((winnerRating - loserRating) / 400.0))
         val newWinnerRating = winnerRating + kFactor * (1 - expectedWinner)
-        val newLoserRating = loserRating + kFactor * (0 - expectedLoser)
+        val newLoserRating = loserRating + kFactor * (0 - expectedWinner)
         return Pair(newWinnerRating.roundToInt(), newLoserRating.roundToInt())
     }
 
@@ -250,5 +345,159 @@ class BattleArenaActivity : AppCompatActivity() {
     override fun onSupportNavigateUp(): Boolean {
         onBackPressedDispatcher.onBackPressed()
         return true
+    }
+
+    // --- P2P Methods ---
+    private fun checkAndRequestPermissions() {
+        val permissionsToRequest = mutableListOf<String>()
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.NEARBY_WIFI_DEVICES) != PackageManager.PERMISSION_GRANTED) {
+            permissionsToRequest.add(Manifest.permission.NEARBY_WIFI_DEVICES)
+        }
+        if (permissionsToRequest.isNotEmpty()) {
+            permissionsLauncher.launch(permissionsToRequest.toTypedArray())
+        } else {
+            setupP2P()
+        }
+    }
+
+    private fun setupP2P() {
+        channel = wifiP2pManager.initialize(this, mainLooper, null)
+        receiver = WifiDirectBroadcastReceiver()
+        intentFilter = IntentFilter().apply {
+            addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION)
+            addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION)
+            addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION)
+            addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION)
+        }
+        registerReceiver(receiver, intentFilter)
+        peerListAdapter = PeerListAdapter { device -> connectToPeer(device) }
+        binding.peersRecyclerView.adapter = peerListAdapter
+        showFighterSelection()
+    }
+
+    private fun connectToPeer(device: WifiP2pDevice) {
+        val config = WifiP2pConfig().apply { deviceAddress = device.deviceAddress }
+        wifiP2pManager.connect(channel, config, object : WifiP2pManager.ActionListener {
+            override fun onSuccess() { Toast.makeText(this@BattleArenaActivity, "Connecting to ${device.deviceName}", Toast.LENGTH_SHORT).show() }
+            override fun onFailure(reason: Int) { Toast.makeText(this@BattleArenaActivity, "Connection failed. Try again.", Toast.LENGTH_SHORT).show() }
+        })
+    }
+
+    private val peerListListener = WifiP2pManager.PeerListListener { peerList ->
+        peers.clear()
+        peers.addAll(peerList.deviceList)
+        peerListAdapter.submitList(peers.toList())
+        if (peers.isEmpty()) log("No opponents found.")
+    }
+
+    override fun onConnectionInfoAvailable(info: WifiP2pInfo) {
+        val groupOwnerAddress: InetAddress = info.groupOwnerAddress ?: return
+        if (info.groupFormed && info.isGroupOwner) {
+            isHost = true
+            log("You are the host. Waiting for opponent to connect...")
+            serverThread = ServerThread()
+            serverThread?.start()
+        } else if (info.groupFormed) {
+            isHost = false
+            log("Connected to host. Sending card...")
+            clientThread = ClientThread(groupOwnerAddress)
+            clientThread?.start()
+        }
+    }
+
+    inner class WifiDirectBroadcastReceiver : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION -> wifiP2pManager.requestPeers(channel, peerListListener)
+                WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION -> wifiP2pManager.requestConnectionInfo(channel, this@BattleArenaActivity)
+            }
+        }
+    }
+
+    inner class ServerThread : Thread() {
+        private var serverSocket: ServerSocket? = null
+        private var socket: Socket? = null
+        override fun run() {
+            try {
+                serverSocket = ServerSocket(8888).also { socket = it.accept() }
+                val inputStream = socket!!.getInputStream()
+                val outputStream = socket!!.getOutputStream()
+                val clientMsg = Gson().fromJson(readMessage(inputStream), P2pMessage::class.java)
+                player2Card = clientMsg.card
+                battleSeed = System.currentTimeMillis()
+                val hostMsg = P2pMessage(card = player1Card!!, seed = battleSeed)
+                writeMessage(outputStream, Gson().toJson(hostMsg))
+                runOnUiThread { startBattle() }
+            } catch (e: IOException) { Log.e(TAG, "ServerThread IOException", e) }
+        }
+        override fun interrupt() {
+            super.interrupt()
+            try { socket?.close(); serverSocket?.close() } catch (e: IOException) { Log.e(TAG, "Error closing server sockets", e) }
+        }
+    }
+
+    inner class ClientThread(private val hostAddress: InetAddress) : Thread() {
+        private var socket: Socket? = null
+        override fun run() {
+            socket = Socket()
+            try {
+                socket!!.connect(InetSocketAddress(hostAddress, 8888), 5000)
+                val outputStream = socket!!.getOutputStream()
+                val inputStream = socket!!.getInputStream()
+                val clientMsg = P2pMessage(card = player1Card!!)
+                writeMessage(outputStream, Gson().toJson(clientMsg))
+                val hostMsg = Gson().fromJson(readMessage(inputStream), P2pMessage::class.java)
+                player2Card = hostMsg.card
+                battleSeed = hostMsg.seed!!
+                runOnUiThread { startBattle() }
+            } catch (e: IOException) { Log.e(TAG, "ClientThread IOException", e)
+            } finally { try { socket?.close() } catch (e: IOException) { Log.e(TAG, "Error closing client socket", e) } }
+        }
+        override fun interrupt() {
+            super.interrupt()
+            try { socket?.close() } catch (e: IOException) { Log.e(TAG, "Error closing client socket", e) }
+        }
+    }
+
+    private fun readMessage(inputStream: InputStream): String {
+        val buffer = ByteArray(1024)
+        val bytes = inputStream.read(buffer)
+        return String(buffer, 0, bytes)
+    }
+
+    private fun writeMessage(outputStream: OutputStream, message: String) {
+        outputStream.write(message.toByteArray())
+    }
+
+    private fun launchCardSelection(launcher: androidx.activity.result.ActivityResultLauncher<Intent>) {
+        val intent = Intent(this, CollectionActivity::class.java).apply {
+            putExtra(CollectionActivity.EXTRA_SELECTION_MODE, true)
+        }
+        launcher.launch(intent)
+    }
+
+    class PeerListAdapter(private val onItemClicked: (WifiP2pDevice) -> Unit) : RecyclerView.Adapter<PeerListAdapter.PeerViewHolder>() {
+        private var peers = emptyList<WifiP2pDevice>()
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PeerViewHolder = PeerViewHolder.create(parent)
+        override fun onBindViewHolder(holder: PeerViewHolder, position: Int) {
+            val peer = peers[position]
+            holder.bind(peer)
+            holder.itemView.setOnClickListener { onItemClicked(peer) }
+        }
+        override fun getItemCount(): Int = peers.size
+        @SuppressLint("NotifyDataSetChanged")
+        fun submitList(newPeers: List<WifiP2pDevice>) {
+            peers = newPeers
+            notifyDataSetChanged()
+        }
+        class PeerViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+            private val nameText: TextView = itemView.findViewById(R.id.peer_name_text)
+            fun bind(device: WifiP2pDevice) { nameText.text = device.deviceName }
+            companion object { fun create(parent: ViewGroup): PeerViewHolder = PeerViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.list_item_peer, parent, false)) }
+        }
     }
 }

@@ -68,16 +68,23 @@ class LeaderboardAdapter : ListAdapter<ScannedCard, LeaderboardAdapter.Leaderboa
     class LeaderboardViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val rankText: TextView = itemView.findViewById(R.id.rank_text)
         private val cardNameText: TextView = itemView.findViewById(R.id.card_name_text)
-        private val winsText: TextView = itemView.findViewById(R.id.wins_text)
-        private val lossesText: TextView = itemView.findViewById(R.id.losses_text)
+        private val recordText: TextView = itemView.findViewById(R.id.record_text)
         private val ratingText: TextView = itemView.findViewById(R.id.rating_text)
+        private val statsText: TextView = itemView.findViewById(R.id.stats_text)
 
         fun bind(card: ScannedCard, rank: Int) {
+            val context = itemView.context
             rankText.text = "$rank."
-            cardNameText.text = card.name ?: "Card #${card.id}"
-            winsText.text = card.wins.toString()
-            lossesText.text = card.losses.toString()
+            cardNameText.text = card.name ?: context.getString(R.string.card_id_placeholder, card.id)
+            recordText.text = context.getString(R.string.leaderboard_record_format, card.wins, card.losses)
             ratingText.text = card.eloRating.toString()
+
+            card.battleStats?.let { stats ->
+                statsText.text = context.getString(R.string.leaderboard_stats_format, stats.hp, stats.attack, stats.defense, stats.speed, stats.luck)
+                statsText.visibility = View.VISIBLE
+            } ?: run {
+                statsText.visibility = View.GONE
+            }
         }
 
         companion object {

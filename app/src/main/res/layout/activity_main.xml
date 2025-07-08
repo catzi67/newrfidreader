@@ -356,16 +356,6 @@
         app:layout_constraintStart_toStartOf="parent">
 
         <ImageButton
-            android:id="@+id/p2p_button"
-            android:layout_width="0dp"
-            android:layout_height="64dp"
-            android:layout_weight="1"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/content_desc_p2p_button"
-            android:src="@drawable/ic_p2p_24"
-            app:tint="@android:color/white" />
-
-        <ImageButton
             android:id="@+id/barcode_scanner_button"
             android:layout_width="0dp"
             android:layout_height="64dp"

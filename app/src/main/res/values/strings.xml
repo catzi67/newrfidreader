@@ -132,4 +132,17 @@
     <string name="p2p_host_waiting">You are the host. Waiting for opponent…</string>
     <string name="p2p_client_sending">You are the client. Sending card…</string>
     <string name="collection_card_record">%1$dW - %2$dL</string>
+    <string name="leaderboard_record_format">%1$dW / %2$dL</string>
+    <string name="leaderboard_stats_format">HP:%1$d ATK:%2$d DEF:%3$d SPD:%4$d LCK:%5$d</string>
+
+    <!-- Strings for Unified Battle Arena -->
+    <string name="title_activity_battle_setup">Battle Setup</string>
+    <string name="button_local_battle">Local Battle</string>
+    <string name="button_host_p2p_battle">Host P2P Battle</string>
+    <string name="button_join_p2p_battle">Find P2P Battle</string>
+    <string name="battle_setup_prompt">Select a battle mode to begin.</string>
+    <string name="p2p_status_waiting_for_card">Select your card to begin.</string>
+    <string name="p2p_status_waiting_for_opponent_card">Waiting for opponent to select a card…</string>
+    <string name="p2p_status_finding_opponents">Finding opponents…</string>
+    <string name="collection_record_label">Record:</string>
 </resources>

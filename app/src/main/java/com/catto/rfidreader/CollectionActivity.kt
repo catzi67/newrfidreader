@@ -28,14 +28,22 @@ enum class SortOrder { RATING, DATE }
 
 class CollectionActivity : AppCompatActivity() {
 
+    companion object {
+        const val EXTRA_SELECTION_MODE = "extra_selection_mode"
+        const val EXTRA_SELECTED_CARD_ID = "extra_selected_card_id"
+    }
+
     private lateinit var binding: ActivityCollectionBinding
     private val viewModel: CollectionViewModel by viewModels()
+    private var isSelectionMode: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
         binding = ActivityCollectionBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        isSelectionMode = intent.getBooleanExtra(EXTRA_SELECTION_MODE, false)
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.collectionRootLayout) { view, windowInsets ->
             val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -46,12 +54,25 @@ class CollectionActivity : AppCompatActivity() {
         setSupportActionBar(binding.collectionToolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
+        if (isSelectionMode) {
+            binding.collectionToolbar.title = "Select Card for Battle"
+        }
+
         val adapter = CollectionAdapter(
             onCardClicked = { card ->
-                val intent = Intent(this, EditCardActivity::class.java).apply {
-                    putExtra(EditCardActivity.EXTRA_CARD_ID, card.id)
+                if (isSelectionMode) {
+                    val resultIntent = Intent().apply {
+                        putExtra(EXTRA_SELECTED_CARD_ID, card.id)
+                    }
+                    setResult(RESULT_OK, resultIntent)
+                    finish()
+                } else {
+                    // In normal mode, clicking the card goes to edit details
+                    val intent = Intent(this, EditCardActivity::class.java).apply {
+                        putExtra(EditCardActivity.EXTRA_CARD_ID, card.id)
+                    }
+                    startActivity(intent)
                 }
-                startActivity(intent)
             },
             onShareClicked = { card -> shareCard(card) }
         )
@@ -130,7 +151,7 @@ class CollectionAdapter(
         private val rankText: TextView = itemView.findViewById(R.id.rank_text)
         private val cardNameText: TextView = itemView.findViewById(R.id.card_name_text)
         private val serialNumberText: TextView = itemView.findViewById(R.id.serial_number_text)
-        private val signatureView: SignatureView = itemView.findViewById(R.id.signature_view)
+        private val statsText: TextView = itemView.findViewById(R.id.stats_text)
         private val ratingValue: TextView = itemView.findViewById(R.id.rating_value)
         private val recordValue: TextView = itemView.findViewById(R.id.record_value)
         private val timestampText: TextView = itemView.findViewById(R.id.timestamp_text)
@@ -143,7 +164,14 @@ class CollectionAdapter(
             ratingValue.text = card.eloRating.toString()
             recordValue.text = context.getString(R.string.collection_card_record, card.wins, card.losses)
             timestampText.text = SimpleDateFormat("dd-MMM-yyyy", Locale.getDefault()).format(Date(card.scanTimestamp))
-            signatureView.setCardId(hexStringToByteArray(card.serialNumberHex))
+
+            // Set the battle stats text
+            card.battleStats?.let { stats ->
+                statsText.text = context.getString(R.string.leaderboard_stats_format, stats.hp, stats.attack, stats.defense, stats.speed, stats.luck)
+                statsText.visibility = View.VISIBLE
+            } ?: run {
+                statsText.visibility = View.GONE
+            }
 
             if (sortOrder == SortOrder.RATING) {
                 rankText.visibility = View.VISIBLE

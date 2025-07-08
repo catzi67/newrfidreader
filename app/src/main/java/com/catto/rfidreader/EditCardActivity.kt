@@ -22,6 +22,7 @@ class EditCardActivity : AppCompatActivity() {
     private lateinit var nameEditText: TextInputEditText
     private lateinit var notesEditText: TextInputEditText
     private lateinit var saveButton: Button
+    private lateinit var signatureView: SignatureView
     private lateinit var dao: ScannedCardDao
     private var currentCard: ScannedCard? = null
 
@@ -44,6 +45,7 @@ class EditCardActivity : AppCompatActivity() {
         nameEditText = findViewById(R.id.name_edit_text)
         notesEditText = findViewById(R.id.notes_edit_text)
         saveButton = findViewById(R.id.save_button)
+        signatureView = findViewById(R.id.edit_card_signature_view)
         dao = (application as App).database.scannedCardDao()
 
         val cardId = intent.getIntExtra(EXTRA_CARD_ID, -1)
@@ -57,6 +59,8 @@ class EditCardActivity : AppCompatActivity() {
             currentCard?.let {
                 nameEditText.setText(it.name)
                 notesEditText.setText(it.notes)
+                val cardIdBytes = hexStringToByteArray(it.serialNumberHex)
+                signatureView.setCardId(cardIdBytes)
             }
         }
 

@@ -2,7 +2,7 @@ package com.catto.rfidreader
 
 import kotlin.math.abs
 import kotlin.math.max
-import kotlin.random.Random
+import java.util.Random // Use java.util.Random for determinism
 
 // A data class to hold the detailed outcome of a single attack turn.
 data class AttackResult(
@@ -19,19 +19,37 @@ data class AttackResult(
 // A singleton object to manage all battle-related logic.
 object BattleManager {
 
-    // Generates a unique set of battle stats based on a card's ID.
+    /**
+     * Generates a unique and deterministic set of battle stats based on a card's ID.
+     * The formula is designed to produce the exact same stats for the same ID on any device.
+     */
     fun generateStats(cardId: ByteArray): CardStats {
         if (cardId.isEmpty()) {
+            // Return default stats for an empty ID.
             return CardStats(10, 5, 5, 5, 5, ElementType.VOID)
         }
-        val seed = cardId.contentHashCode().toLong()
-        val random = Random(seed)
-        val hp = 80 + (cardId.getOrElse(0) { 0 }.toInt() and 0xFF + cardId.getOrElse(1) { 0 }.toInt() and 0xFF) % 71
-        val attack = 15 + (cardId.getOrElse(2) { 0 }.toInt() and 0xFF) % 31
-        val defense = 5 + (cardId.getOrElse(3) { 0 }.toInt() and 0xFF) % 21
-        val speed = 5 + random.nextInt(21)
-        val luck = 5 + random.nextInt(16)
 
+        // --- Deterministic Stat Generation ---
+        // Each stat is derived directly from the bytes of the card ID to ensure
+        // the result is the same every time, on any device. We use different
+        // bytes and modulo operations to create variety in the stat distribution.
+
+        // HP: Based on the first two bytes, in the range of 80-150.
+        val hp = 80 + (cardId.getOrElse(0) { 1 }.toInt() and 0xFF + cardId.getOrElse(1) { 1 }.toInt() and 0xFF) % 71
+
+        // Attack: Based on the third byte, in the range of 15-45.
+        val attack = 15 + (cardId.getOrElse(2) { 2 }.toInt() and 0xFF) % 31
+
+        // Defense: Based on the fourth byte, in the range of 5-25.
+        val defense = 5 + (cardId.getOrElse(3) { 3 }.toInt() and 0xFF) % 21
+
+        // Speed: Based on the fifth byte, in the range of 5-25.
+        val speed = 5 + (cardId.getOrElse(4) { 4 }.toInt() and 0xFF) % 21
+
+        // Luck: Based on the sixth byte, in the range of 5-20.
+        val luck = 5 + (cardId.getOrElse(5) { 5 }.toInt() and 0xFF) % 16
+
+        // Element Type: Determined by the sum of all byte values.
         val elementValue = cardId.sumOf { it.toInt() }
         val elementType = when (abs(elementValue) % 4) {
             0 -> ElementType.TECH
@@ -43,11 +61,18 @@ object BattleManager {
         return CardStats(hp, attack, defense, speed, luck, elementType)
     }
 
-    // Resolves a single attack, returning a detailed AttackResult.
-    fun resolveAttack(attacker: CardStats, defender: CardStats): AttackResult {
+    /**
+     * Resolves a single attack, returning a detailed AttackResult.
+     * This function is now deterministic if the same Random instance is provided.
+     * @param attacker The stats of the attacking card.
+     * @param defender The stats of the defending card.
+     * @param random A seeded Random instance to ensure outcomes are the same on both devices.
+     * @return An AttackResult object detailing what happened in the turn.
+     */
+    fun resolveAttack(attacker: CardStats, defender: CardStats, random: Random): AttackResult {
         val speedDifference = defender.speed - attacker.speed
         val missChance = 0.10 + (speedDifference * 0.01)
-        if (Random.nextFloat() < missChance.coerceIn(0.05, 0.5)) {
+        if (random.nextFloat() < missChance.coerceIn(0.05, 0.5)) {
             return AttackResult(isMiss = true)
         }
 
@@ -64,7 +89,7 @@ object BattleManager {
         }
 
         val critChance = 0.05 + (attacker.luck * 0.01)
-        val isCritical = Random.nextFloat() < critChance.coerceIn(0.0, 0.4)
+        val isCritical = random.nextFloat() < critChance.coerceIn(0.0, 0.4)
         if (isCritical) {
             damage *= 1.5f
         }
@@ -73,7 +98,7 @@ object BattleManager {
         damage -= damageReduction
 
         val blockChance = 0.05 + (defender.defense * 0.005) + (defender.luck * 0.005)
-        val isBlocked = Random.nextFloat() < blockChance.coerceIn(0.0, 0.3)
+        val isBlocked = random.nextFloat() < blockChance.coerceIn(0.0, 0.3)
         if (isBlocked) {
             damage *= 0.5f
         }
@@ -86,7 +111,7 @@ object BattleManager {
         var didCounter = false
         var counterDamage = 0
         val counterChance = 0.10 + (defender.speed * 0.005) + (defender.luck * 0.01)
-        if (Random.nextFloat() < counterChance.coerceIn(0.0, 0.35)) {
+        if (random.nextFloat() < counterChance.coerceIn(0.0, 0.35)) {
             didCounter = true
             counterDamage = max(1, (defender.attack * 0.4f).toInt())
         }

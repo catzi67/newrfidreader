@@ -199,9 +199,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupButtonListeners() {
-        binding.p2pButton.setOnClickListener {
-            startActivity(Intent(this, P2pBattleActivity::class.java))
-        }
         binding.barcodeScannerButton.setOnClickListener {
             val intent = Intent(this, BarcodeScannerActivity::class.java)
             barcodeScannerLauncher.launch(intent)
