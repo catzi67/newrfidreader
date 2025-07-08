@@ -122,4 +122,14 @@
     <string name="menu_sort">Sort</string>
     <string name="menu_sort_by_rating">Sort by Rating</string>
     <string name="menu_sort_by_date">Sort by Date</string>
+    <string name="p2p_permission_required">Location and Nearby Devices permissions are required.</string>
+    <string name="p2p_card_selected">Card selected: %1$s. Ready to host or join.</string>
+    <string name="p2p_select_card_prompt">Please select a card for battle. (Tap here to select)</string>
+    <string name="p2p_discovery_initiated">Discovery Initiated</string>
+    <string name="p2p_discovery_failed">Discovery Failed: %1$d</string>
+    <string name="p2p_connecting_to">Connecting to %1$s</string>
+    <string name="p2p_connection_failed">Connection failed. Try again.</string>
+    <string name="p2p_host_waiting">You are the host. Waiting for opponent…</string>
+    <string name="p2p_client_sending">You are the client. Sending card…</string>
+    <string name="collection_card_record">%1$dW - %2$dL</string>
 </resources>

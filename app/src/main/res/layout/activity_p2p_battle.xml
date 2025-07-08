@@ -20,6 +20,7 @@
 
     <LinearLayout
         android:id="@+id/button_container"
+        style="?android:attr/buttonBarStyle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
@@ -30,6 +31,7 @@
 
         <Button
             android:id="@+id/host_button"
+            style="?android:attr/buttonBarButtonStyle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
@@ -38,6 +40,7 @@
 
         <Button
             android:id="@+id/join_button"
+            style="?android:attr/buttonBarButtonStyle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"

@@ -2,7 +2,6 @@ package com.catto.rfidreader
 
 import android.app.Application
 import android.content.Intent
-import android.graphics.Color
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.*
@@ -11,6 +10,7 @@ import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.toColorInt
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -63,7 +63,7 @@ class CollectionActivity : AppCompatActivity() {
         }
 
         viewModel.sortOrder.asLiveData().observe(this) { sortOrder ->
-            adapter.updateSortOrder(sortOrder)
+            adapter.sortOrder = sortOrder
         }
     }
 
@@ -111,12 +111,7 @@ class CollectionAdapter(
     private val onShareClicked: (ScannedCard) -> Unit
 ) : ListAdapter<ScannedCard, CollectionAdapter.CardViewHolder>(CardsComparator()) {
 
-    private var currentSortOrder: SortOrder = SortOrder.RATING
-
-    fun updateSortOrder(newSortOrder: SortOrder) {
-        currentSortOrder = newSortOrder
-        notifyDataSetChanged()
-    }
+    var sortOrder: SortOrder = SortOrder.RATING
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CardViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.list_item_collection, parent, false)
@@ -124,7 +119,7 @@ class CollectionAdapter(
     }
 
     override fun onBindViewHolder(holder: CardViewHolder, position: Int) {
-        holder.bind(getItem(position), position + 1, currentSortOrder)
+        holder.bind(getItem(position), position + 1, sortOrder)
     }
 
     class CardViewHolder(
@@ -142,10 +137,11 @@ class CollectionAdapter(
         private val shareButton: ImageButton = itemView.findViewById(R.id.share_button)
 
         fun bind(card: ScannedCard, position: Int, sortOrder: SortOrder) {
-            cardNameText.text = card.name ?: "Card #${card.id}"
+            val context = itemView.context
+            cardNameText.text = card.name ?: context.getString(R.string.card_id_placeholder, card.id)
             serialNumberText.text = card.serialNumberHex
             ratingValue.text = card.eloRating.toString()
-            recordValue.text = "${card.wins}W - ${card.losses}L"
+            recordValue.text = context.getString(R.string.collection_card_record, card.wins, card.losses)
             timestampText.text = SimpleDateFormat("dd-MMM-yyyy", Locale.getDefault()).format(Date(card.scanTimestamp))
             signatureView.setCardId(hexStringToByteArray(card.serialNumberHex))
 
@@ -153,15 +149,14 @@ class CollectionAdapter(
                 rankText.visibility = View.VISIBLE
                 rankText.text = position.toString()
 
-                val context = itemView.context
                 val background = ContextCompat.getDrawable(context, R.drawable.rank_circle_background)?.mutate()
                 val rankColor = when (position) {
-                    1 -> Color.parseColor("#FFD700") // Gold
-                    2 -> Color.parseColor("#C0C0C0") // Silver
-                    3 -> Color.parseColor("#CD7F32") // Bronze
+                    1 -> "#FFD700".toColorInt() // Gold
+                    2 -> "#C0C0C0".toColorInt() // Silver
+                    3 -> "#CD7F32".toColorInt() // Bronze
                     else -> {
                         val typedValue = TypedValue()
-                        context.theme.resolveAttribute(com.google.android.material.R.attr.colorPrimary, typedValue, true)
+                        context.theme.resolveAttribute(android.R.attr.colorPrimary, typedValue, true)
                         typedValue.data
                     }
                 }

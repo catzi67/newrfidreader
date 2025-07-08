@@ -44,7 +44,7 @@ private const val MESSAGE_READ = 1
 class P2pBattleActivity : AppCompatActivity(), WifiP2pManager.ConnectionInfoListener {
 
     private lateinit var binding: ActivityP2pBattleBinding
-    private val wifiP2pManager: WifiP2pManager by lazy { getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager }
+    private val wifiP2pManager: WifiP2pManager by lazy { getSystemService(WIFI_P2P_SERVICE) as WifiP2pManager }
     private lateinit var channel: WifiP2pManager.Channel
     private lateinit var receiver: BroadcastReceiver
     private lateinit var intentFilter: IntentFilter
@@ -68,12 +68,12 @@ class P2pBattleActivity : AppCompatActivity(), WifiP2pManager.ConnectionInfoList
                     localCard = (application as App).database.scannedCardDao().getCardById(cardId)
                     binding.hostButton.isEnabled = true
                     binding.joinButton.isEnabled = true
-                    binding.statusText.text = "Card selected: ${localCard?.name}. Ready to host or join."
+                    binding.statusText.text = getString(R.string.p2p_card_selected, localCard?.name)
                 }
             }
         } else {
             if (localCard == null) {
-                binding.statusText.text = "Please select a card for battle. (Tap here to select)"
+                binding.statusText.text = getString(R.string.p2p_select_card_prompt)
             }
         }
     }
@@ -81,7 +81,7 @@ class P2pBattleActivity : AppCompatActivity(), WifiP2pManager.ConnectionInfoList
     private val permissionsLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
         if (permissions[Manifest.permission.ACCESS_FINE_LOCATION] != true ||
             (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && permissions[Manifest.permission.NEARBY_WIFI_DEVICES] != true)) {
-            Toast.makeText(this, "Location and Nearby Devices permissions are required.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.p2p_permission_required), Toast.LENGTH_LONG).show()
             finish()
         }
     }
@@ -124,7 +124,7 @@ class P2pBattleActivity : AppCompatActivity(), WifiP2pManager.ConnectionInfoList
 
         binding.hostButton.isEnabled = false
         binding.joinButton.isEnabled = false
-        binding.statusText.text = "Please select a card for battle. (Tap here to select)"
+        binding.statusText.text = getString(R.string.p2p_select_card_prompt)
         selectCardLauncher.launch(Intent(this, SelectCardActivity::class.java))
     }
 
@@ -178,10 +178,10 @@ class P2pBattleActivity : AppCompatActivity(), WifiP2pManager.ConnectionInfoList
         val config = WifiP2pConfig().apply { deviceAddress = device.deviceAddress }
         wifiP2pManager.connect(channel, config, object : WifiP2pManager.ActionListener {
             override fun onSuccess() {
-                Toast.makeText(this@P2pBattleActivity, "Connecting to ${device.deviceName}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@P2pBattleActivity, getString(R.string.p2p_connecting_to, device.deviceName), Toast.LENGTH_SHORT).show()
             }
             override fun onFailure(reason: Int) {
-                Toast.makeText(this@P2pBattleActivity, "Connection failed. Try again.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@P2pBattleActivity, getString(R.string.p2p_connection_failed), Toast.LENGTH_SHORT).show()
             }
         })
     }
@@ -190,10 +190,10 @@ class P2pBattleActivity : AppCompatActivity(), WifiP2pManager.ConnectionInfoList
         binding.statusText.text = getString(R.string.p2p_status_discovering)
         wifiP2pManager.discoverPeers(channel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() {
-                Toast.makeText(this@P2pBattleActivity, "Discovery Initiated", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@P2pBattleActivity, getString(R.string.p2p_discovery_initiated), Toast.LENGTH_SHORT).show()
             }
             override fun onFailure(reasonCode: Int) {
-                Toast.makeText(this@P2pBattleActivity, "Discovery Failed: $reasonCode", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@P2pBattleActivity, getString(R.string.p2p_discovery_failed, reasonCode), Toast.LENGTH_SHORT).show()
             }
         })
     }
@@ -214,14 +214,14 @@ class P2pBattleActivity : AppCompatActivity(), WifiP2pManager.ConnectionInfoList
 
         if (info.groupFormed && info.isGroupOwner) {
             isHost = true
-            binding.statusText.text = "You are the host. Waiting for opponent..."
+            binding.statusText.text = getString(R.string.p2p_host_waiting)
             if (serverThread == null) {
                 serverThread = ServerThread(handler)
                 serverThread!!.start()
             }
         } else if (info.groupFormed) {
             isHost = false
-            binding.statusText.text = "You are the client. Sending card..."
+            binding.statusText.text = getString(R.string.p2p_client_sending)
             if (clientThread == null && localCard != null) {
                 val localCardJson = Gson().toJson(localCard)
                 clientThread = ClientThread(groupOwnerAddress, localCardJson, handler)
