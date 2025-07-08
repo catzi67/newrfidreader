@@ -17,9 +17,6 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.util.Log
 import android.view.View
-import android.widget.ImageButton
-import android.widget.LinearLayout
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -27,8 +24,7 @@ import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
-import com.google.android.material.card.MaterialCardView
-import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.catto.rfidreader.databinding.ActivityMainBinding
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 import java.math.BigInteger
@@ -44,31 +40,8 @@ class MainActivity : AppCompatActivity() {
         private const val SCORING_EXPONENT = 3.5
     }
 
-    // UI View References
-    private lateinit var mainLayout: androidx.constraintlayout.widget.ConstraintLayout
-    private lateinit var cardContainer: LinearLayout
-    private lateinit var scoreCard: MaterialCardView
-    private lateinit var infoCard: MaterialCardView
-    private lateinit var signatureView: SignatureView
-    private lateinit var promptCard: MaterialCardView
-    private lateinit var initialPromptCard: MaterialCardView
-    private lateinit var hexValue: TextView
-    private lateinit var decValue: TextView
-    private lateinit var binValue: TextView
-    private lateinit var revHexValue: TextView
-    private lateinit var revDecValue: TextView
-    private lateinit var revBinValue: TextView
-    private lateinit var nfcTagInfoTextView: TextView
-    private lateinit var scoreValueText: TextView
-    private lateinit var highScoreValueText: TextView
-    private lateinit var barcodeScannerButton: ImageButton
-    private lateinit var historyButton: ImageButton
-    private lateinit var questsButton: ImageButton
-    private lateinit var battleButton: ImageButton
-    private lateinit var leaderboardButton: ImageButton
-    private lateinit var converterButton: ImageButton
-    private lateinit var settingsButton: ImageButton
-    private lateinit var copyFab: FloatingActionButton
+    // Use View Binding to safely access views
+    private lateinit var binding: ActivityMainBinding
 
     // State and Logic Variables
     private var nfcAdapter: NfcAdapter? = null
@@ -89,36 +62,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        // Inflate the layout using View Binding
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        // Initialize database from the Application class
         database = (application as App).database
-
-        // Initialize all views
-        mainLayout = findViewById(R.id.main_layout)
-        cardContainer = findViewById(R.id.card_container)
-        promptCard = findViewById(R.id.prompt_card)
-        initialPromptCard = findViewById(R.id.initial_prompt_card)
-        scoreCard = findViewById(R.id.score_card)
-        infoCard = findViewById(R.id.info_card)
-        signatureView = findViewById(R.id.signature_view)
-        hexValue = findViewById(R.id.hex_value)
-        decValue = findViewById(R.id.dec_value)
-        binValue = findViewById(R.id.bin_value)
-        revHexValue = findViewById(R.id.rev_hex_value)
-        revDecValue = findViewById(R.id.rev_dec_value)
-        revBinValue = findViewById(R.id.rev_bin_value)
-        nfcTagInfoTextView = findViewById(R.id.nfc_tag_info)
-        scoreValueText = findViewById(R.id.score_value_text)
-        highScoreValueText = findViewById(R.id.high_score_value_text)
-        barcodeScannerButton = findViewById(R.id.barcode_scanner_button)
-        historyButton = findViewById(R.id.history_button)
-        questsButton = findViewById(R.id.quests_button)
-        battleButton = findViewById(R.id.battle_button)
-        leaderboardButton = findViewById(R.id.leaderboard_button)
-        converterButton = findViewById(R.id.converter_button)
-        settingsButton = findViewById(R.id.settings_button)
-        copyFab = findViewById(R.id.fab_copy)
 
         setupButtonListeners()
         resetUI()
@@ -126,7 +74,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Refresh UI in case settings were changed
         loadAndApplySettings()
         setupForegroundDispatch()
     }
@@ -138,7 +85,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        Log.d(TAG, "onNewIntent received with action: ${intent.action}")
         if (NfcAdapter.ACTION_TAG_DISCOVERED == intent.action) {
             handleNfcTag(intent)
         }
@@ -150,47 +96,38 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, getString(R.string.toast_nfc_not_available), Toast.LENGTH_LONG).show()
             return
         }
-        val intent = Intent(this, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        val intent = Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
         val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_MUTABLE)
         nfcAdapter?.enableForegroundDispatch(this, pendingIntent, null, null)
     }
 
     private fun handleBarcode(barcodeValue: String) {
         try {
-            // Treat the barcode string as a decimal number
             val bigIntValue = BigInteger(barcodeValue)
-
-            // Convert the BigInteger to a byte array (big-endian)
             val bigEndianBytes = bigIntValue.toByteArray().let {
                 if (it.isNotEmpty() && it[0] == 0.toByte()) it.sliceArray(1 until it.size) else it
             }
-            val littleEndianBytes = bigEndianBytes.reversedArray()
-
-            val tagInfo = "BARCODE"
-            val battleStats = BattleManager.generateStats(bigEndianBytes, tagInfo)
+            val battleStats = BattleManager.generateStats(bigEndianBytes)
             val score = calculateScore(bigEndianBytes)
 
-            // Create the ScannedCard with all numeric conversions
             val newCard = ScannedCard(
                 serialNumberHex = bytesToHexString(bigEndianBytes),
                 decValue = bytesToDecString(bigEndianBytes),
                 binValue = bytesToBinString(bigEndianBytes),
-                revHexValue = bytesToHexString(littleEndianBytes),
-                revDecValue = bytesToDecString(littleEndianBytes),
-                revBinValue = bytesToBinString(littleEndianBytes),
+                revHexValue = bytesToHexString(bigEndianBytes.reversedArray()),
+                revDecValue = bytesToDecString(bigEndianBytes.reversedArray()),
+                revBinValue = bytesToBinString(bigEndianBytes.reversedArray()),
                 score = score,
-                tagInfo = tagInfo,
+                tagInfo = "BARCODE",
                 battleStats = battleStats,
                 scanTimestamp = System.currentTimeMillis()
             )
-
             updateUiWithCard(newCard, bigEndianBytes)
         } catch (e: NumberFormatException) {
             Log.e(TAG, "Barcode value is not a valid number: $barcodeValue", e)
             Toast.makeText(this, "Scanned barcode is not a number: $barcodeValue", Toast.LENGTH_LONG).show()
         }
     }
-
 
     private fun handleNfcTag(intent: Intent) {
         val tag: Tag? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -201,104 +138,91 @@ class MainActivity : AppCompatActivity() {
         }
 
         tag?.let {
-            val littleEndianBytes = it.id
-            val bigEndianBytes = littleEndianBytes.reversedArray()
-            val tagInfo = parseTagInfo(it)
-            val battleStats = BattleManager.generateStats(it.id, tagInfo)
+            val bigEndianBytes = it.id.reversedArray()
+            val battleStats = BattleManager.generateStats(it.id)
 
             val newCard = ScannedCard(
                 serialNumberHex = bytesToHexString(bigEndianBytes),
                 decValue = bytesToDecString(bigEndianBytes),
                 binValue = bytesToBinString(bigEndianBytes),
-                revHexValue = bytesToHexString(littleEndianBytes),
-                revDecValue = bytesToDecString(littleEndianBytes),
-                revBinValue = bytesToBinString(littleEndianBytes),
+                revHexValue = bytesToHexString(it.id),
+                revDecValue = bytesToDecString(it.id),
+                revBinValue = bytesToBinString(it.id),
                 score = calculateScore(bigEndianBytes),
-                tagInfo = tagInfo,
+                tagInfo = parseTagInfo(it),
                 battleStats = battleStats,
                 scanTimestamp = System.currentTimeMillis()
             )
-
             updateUiWithCard(newCard, it.id)
         }
     }
 
     private fun updateUiWithCard(card: ScannedCard, idBytes: ByteArray) {
-        if (visualSignaturesEnabled) {
-            signatureView.setCardId(idBytes)
-            signatureView.visibility = View.VISIBLE
+        binding.signatureView.visibility = if (visualSignaturesEnabled) {
+            binding.signatureView.setCardId(idBytes)
+            View.VISIBLE
         } else {
-            signatureView.visibility = View.GONE
+            View.GONE
         }
 
-        hexValue.text = card.serialNumberHex
-        decValue.text = card.decValue
-        binValue.text = card.binValue
-        revHexValue.text = card.revHexValue
-        revDecValue.text = card.revDecValue
-        revBinValue.text = card.revBinValue
-        nfcTagInfoTextView.text = card.tagInfo
-        scoreValueText.text = card.score.toString()
+        binding.hexValue.text = card.serialNumberHex
+        binding.decValue.text = card.decValue
+        binding.binValue.text = card.binValue
+        binding.revHexValue.text = card.revHexValue
+        binding.revDecValue.text = card.revDecValue
+        binding.revBinValue.text = card.revBinValue
+        binding.nfcTagInfo.text = card.tagInfo
+        binding.scoreValueText.text = card.score.toString()
 
         if (isGameifyEnabled) {
             if (card.score > highScore) {
                 highScore = card.score
                 saveHighScore(highScore)
-                highScoreValueText.text = highScore.toString()
+                binding.highScoreValueText.text = highScore.toString()
                 showCongratsSnackbar()
             }
-            scoreCard.visibility = View.VISIBLE
+            binding.scoreCard.visibility = View.VISIBLE
         } else {
-            scoreCard.visibility = View.GONE
+            binding.scoreCard.visibility = View.GONE
         }
 
         lifecycleScope.launch {
-            database.scannedCardDao().insert(card)
+            database.scannedCardDao().upsert(card)
             val allCards = database.scannedCardDao().getAllCardsList()
-            QuestManager.checkQuests(mainLayout, this@MainActivity, card, allCards)
+            QuestManager.checkQuests(binding.mainLayout, this@MainActivity, card, allCards)
         }
 
-        initialPromptCard.visibility = View.GONE
-        promptCard.visibility = View.VISIBLE
-        cardContainer.visibility = View.VISIBLE
-
-        setControlsEnabled()
-        copyFab.show()
+        binding.initialPromptCard.visibility = View.GONE
+        binding.promptCard.visibility = View.VISIBLE
+        binding.cardContainer.visibility = View.VISIBLE
+        binding.fabCopy.show()
     }
 
-
     private fun setupButtonListeners() {
-        barcodeScannerButton.setOnClickListener {
+        binding.p2pButton.setOnClickListener {
+            startActivity(Intent(this, P2pBattleActivity::class.java))
+        }
+        binding.barcodeScannerButton.setOnClickListener {
             val intent = Intent(this, BarcodeScannerActivity::class.java)
             barcodeScannerLauncher.launch(intent)
         }
-
-        historyButton.setOnClickListener {
-            startActivity(Intent(this, HistoryActivity::class.java))
+        binding.collectionButton.setOnClickListener {
+            startActivity(Intent(this, CollectionActivity::class.java))
         }
-
-        questsButton.setOnClickListener {
+        binding.questsButton.setOnClickListener {
             startActivity(Intent(this, QuestsActivity::class.java))
         }
-
-        battleButton.setOnClickListener {
+        binding.battleButton.setOnClickListener {
             startActivity(Intent(this, BattleArenaActivity::class.java))
         }
-
-        leaderboardButton.setOnClickListener {
-            startActivity(Intent(this, LeaderboardActivity::class.java))
-        }
-
-        converterButton.setOnClickListener {
+        binding.converterButton.setOnClickListener {
             startActivity(Intent(this, ConverterActivity::class.java))
         }
-
-        settingsButton.setOnClickListener {
+        binding.settingsButton.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
-
-        copyFab.setOnClickListener {
-            val textToCopy = "Hex: ${hexValue.text}\nDecimal: ${decValue.text}"
+        binding.fabCopy.setOnClickListener {
+            val textToCopy = "Hex: ${binding.hexValue.text}\nDecimal: ${binding.decValue.text}"
             val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
             val clip = ClipData.newPlainText("RFID Data", textToCopy)
             clipboard.setPrimaryClip(clip)
@@ -319,28 +243,21 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setControlsEnabled() {
-        // This function is currently not used for any purpose.
-    }
-
     private fun resetUI() {
-        hexValue.text = ""
-        decValue.text = ""
-        binValue.text = ""
-        revHexValue.text = ""
-        revDecValue.text = ""
-        revBinValue.text = ""
-        scoreValueText.text = ""
-        nfcTagInfoTextView.text = ""
-        signatureView.setCardId(null)
-        signatureView.visibility = View.GONE
-
-        setControlsEnabled()
-        copyFab.hide()
-
-        cardContainer.visibility = View.GONE
-        promptCard.visibility = View.GONE
-        initialPromptCard.visibility = View.VISIBLE
+        binding.hexValue.text = ""
+        binding.decValue.text = ""
+        binding.binValue.text = ""
+        binding.revHexValue.text = ""
+        binding.revDecValue.text = ""
+        binding.revBinValue.text = ""
+        binding.scoreValueText.text = ""
+        binding.nfcTagInfo.text = ""
+        binding.signatureView.setCardId(null)
+        binding.signatureView.visibility = View.GONE
+        binding.fabCopy.hide()
+        binding.cardContainer.visibility = View.GONE
+        binding.promptCard.visibility = View.GONE
+        binding.initialPromptCard.visibility = View.VISIBLE
     }
 
     private fun loadAndApplySettings() {
@@ -349,8 +266,7 @@ class MainActivity : AppCompatActivity() {
         hapticsEnabled = prefs.getBoolean("pref_key_haptic_feedback", true)
         visualSignaturesEnabled = prefs.getBoolean("pref_key_visual_signature", true)
         highScore = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getInt(PREF_KEY_HIGH_SCORE, 0)
-        highScoreValueText.text = highScore.toString()
-
+        binding.highScoreValueText.text = highScore.toString()
         loadSavedBackground()
         applyTextSize()
     }
@@ -361,45 +277,38 @@ class MainActivity : AppCompatActivity() {
         val (labelSize, valueSize) = when (textSizePref) {
             "medium" -> 16f to 18f
             "large" -> 18f to 20f
-            else -> 14f to 16f // "small"
+            else -> 14f to 16f
         }
-
-        val valueTextViews = listOf(hexValue, decValue, binValue, revHexValue, revDecValue, revBinValue)
+        val valueTextViews = with(binding) {
+            listOf(hexValue, decValue, binValue, revHexValue, revDecValue, revBinValue)
+        }
         valueTextViews.forEach { it.textSize = valueSize }
-
-        val labelTextViews = listOf<TextView>(
-            findViewById(R.id.hex_label), findViewById(R.id.dec_label), findViewById(R.id.bin_label),
-            findViewById(R.id.rev_hex_label), findViewById(R.id.rev_dec_label), findViewById(R.id.rev_bin_label),
-            findViewById(R.id.score_label), findViewById(R.id.high_score_label)
-        )
+        val labelTextViews = with(binding) {
+            listOf(hexLabel, decLabel, binLabel, revHexLabel, revDecLabel, revBinLabel, scoreLabel, highScoreLabel)
+        }
         labelTextViews.forEach { it.textSize = labelSize }
-
-        nfcTagInfoTextView.textSize = labelSize
-        highScoreValueText.textSize = labelSize
-        scoreValueText.textSize = 48f // Keep score text large
+        binding.nfcTagInfo.textSize = labelSize
+        binding.highScoreValueText.textSize = labelSize
+        binding.scoreValueText.textSize = 48f
     }
 
-
     private fun showCongratsSnackbar() {
-        Snackbar.make(mainLayout, getString(R.string.congrats_new_high_score), Snackbar.LENGTH_LONG).show()
+        Snackbar.make(binding.mainLayout, getString(R.string.congrats_new_high_score), Snackbar.LENGTH_LONG).show()
     }
 
     private fun saveHighScore(score: Int) {
-        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        prefs.edit { putInt(PREF_KEY_HIGH_SCORE, score) }
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit { putInt(PREF_KEY_HIGH_SCORE, score) }
     }
 
     private fun loadSavedBackground() {
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         val backgroundType = prefs.getString("pref_key_background_type", "COLOR")
         val backgroundValue = prefs.getString("pref_key_background_value", null)
-
         when (backgroundType) {
             "IMAGE" -> {
                 if (backgroundValue != null) {
                     try {
-                        val uri = backgroundValue.toUri()
-                        loadBackgroundFromUri(uri)
+                        loadBackgroundFromUri(backgroundValue.toUri())
                     } catch (e: Exception) {
                         e.printStackTrace()
                         Toast.makeText(this, getString(R.string.toast_failed_to_load_saved_background), Toast.LENGTH_SHORT).show()
@@ -408,11 +317,9 @@ class MainActivity : AppCompatActivity() {
             }
             "COLOR" -> {
                 val color = backgroundValue?.toIntOrNull() ?: Color.DKGRAY
-                mainLayout.setBackgroundColor(color)
+                binding.mainLayout.setBackgroundColor(color)
             }
-            else -> {
-                mainLayout.setBackgroundColor(Color.DKGRAY)
-            }
+            else -> binding.mainLayout.setBackgroundColor(Color.DKGRAY)
         }
     }
 
@@ -420,7 +327,7 @@ class MainActivity : AppCompatActivity() {
         try {
             val inputStream = contentResolver.openInputStream(uri)
             val drawable = Drawable.createFromStream(inputStream, uri.toString())
-            mainLayout.background = drawable
+            binding.mainLayout.background = drawable
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(this, getString(R.string.toast_failed_to_load_image), Toast.LENGTH_SHORT).show()
@@ -431,7 +338,6 @@ class MainActivity : AppCompatActivity() {
         val sb = StringBuilder()
         val techList = tag.techList.map { it.substringAfterLast('.') }
         sb.append("Technologies: ").append(techList.joinToString(", ")).append("\n")
-
         for (tech in techList) {
             when (tech) {
                 "MifareClassic" -> {

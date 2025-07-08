@@ -13,6 +13,8 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.catto.rfidreader.databinding.ActivityBattleArenaBinding
 import com.catto.rfidreader.databinding.ViewFighterCardBinding
+import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.pow
@@ -25,6 +27,56 @@ class BattleArenaActivity : AppCompatActivity() {
     private var player2Card: ScannedCard? = null
 
     private val dao by lazy { (application as App).database.scannedCardDao() }
+
+    companion object {
+        const val EXTRA_PLAYER_1_CARD = "extra_player_1_card"
+        const val EXTRA_PLAYER_2_CARD = "extra_player_2_card"
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        super.onCreate(savedInstanceState)
+        binding = ActivityBattleArenaBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, windowInsets ->
+            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
+            windowInsets
+        }
+
+        setSupportActionBar(binding.battleArenaToolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+
+        if (intent.hasExtra(EXTRA_PLAYER_1_CARD) && intent.hasExtra(EXTRA_PLAYER_2_CARD)) {
+            val p1Json = intent.getStringExtra(EXTRA_PLAYER_1_CARD)
+            val p2Json = intent.getStringExtra(EXTRA_PLAYER_2_CARD)
+            player1Card = Gson().fromJson(p1Json, ScannedCard::class.java)
+            player2Card = Gson().fromJson(p2Json, ScannedCard::class.java)
+            binding.player1Card.selectFighterButton.visibility = View.GONE
+            binding.player2Card.selectFighterButton.visibility = View.GONE
+            binding.startBattleButton.visibility = View.GONE
+            startBattle()
+        } else {
+            setupLocalBattle()
+        }
+
+        binding.battleLogText.movementMethod = ScrollingMovementMethod()
+    }
+
+    private fun setupLocalBattle() {
+        binding.player1Card.selectFighterButton.setOnClickListener {
+            selectPlayer1Launcher.launch(Intent(this, SelectCardActivity::class.java))
+        }
+        binding.player2Card.selectFighterButton.setOnClickListener {
+            selectPlayer2Launcher.launch(Intent(this, SelectCardActivity::class.java))
+        }
+        binding.startBattleButton.setOnClickListener {
+            startBattle()
+        }
+        updateFighterView(binding.player1Card, null)
+        updateFighterView(binding.player2Card, null)
+    }
 
     private val selectPlayer1Launcher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
@@ -50,43 +102,10 @@ class BattleArenaActivity : AppCompatActivity() {
         }
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        super.onCreate(savedInstanceState)
-        binding = ActivityBattleArenaBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, windowInsets ->
-            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
-            windowInsets
-        }
-
-        setSupportActionBar(binding.battleArenaToolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-
-        binding.player1Card.selectFighterButton.setOnClickListener {
-            selectPlayer1Launcher.launch(Intent(this, SelectCardActivity::class.java))
-        }
-
-        binding.player2Card.selectFighterButton.setOnClickListener {
-            selectPlayer2Launcher.launch(Intent(this, SelectCardActivity::class.java))
-        }
-
-        binding.startBattleButton.setOnClickListener {
-            startBattle()
-        }
-
-        binding.battleLogText.movementMethod = ScrollingMovementMethod()
-
-        updateFighterView(binding.player1Card, null)
-        updateFighterView(binding.player2Card, null)
-    }
-
     private fun updateFighterView(fighterBinding: ViewFighterCardBinding, card: ScannedCard?, currentHp: Int? = null) {
         if (card != null) {
             fighterBinding.fighterName.text = card.name ?: getString(R.string.card_id_placeholder, card.id)
-            fighterBinding.fighterSignature.setCardId(card.serialNumberHex.replace(" ", "").chunked(2).map { it.toInt(16).toByte() }.toByteArray())
+            fighterBinding.fighterSignature.setCardId(hexStringToByteArray(card.serialNumberHex))
             card.battleStats?.let {
                 val hp = currentHp ?: it.hp
                 fighterBinding.fighterStats.text = getString(R.string.battle_stats_full_format, hp, it.attack, it.defense, it.speed, it.luck)
@@ -114,10 +133,10 @@ class BattleArenaActivity : AppCompatActivity() {
         binding.player1Card.selectFighterButton.isEnabled = false
         binding.player2Card.selectFighterButton.isEnabled = false
 
-        binding.battleLogText.text = "" // Clear the log
+        binding.battleLogText.text = ""
         log("The battle begins!")
 
-        lifecycleScope.launch {
+        lifecycleScope.launch(Dispatchers.Main) {
             var hp1 = p1Stats.hp
             var hp2 = p2Stats.hp
 
@@ -127,7 +146,7 @@ class BattleArenaActivity : AppCompatActivity() {
             var isPlayer1Turn = p1Stats.speed >= p2Stats.speed
 
             while (hp1 > 0 && hp2 > 0) {
-                delay(1500) // Pause between turns for dramatic effect
+                delay(1500)
 
                 val attackerCard = if (isPlayer1Turn) p1 else p2
                 val attackerStats = if (isPlayer1Turn) p1Stats else p2Stats
@@ -186,27 +205,42 @@ class BattleArenaActivity : AppCompatActivity() {
     }
 
     private suspend fun updateCardStatsAfterBattle(winner: ScannedCard, loser: ScannedCard) {
-        winner.wins++
-        loser.losses++
+        val dbWinner = dao.getCardBySerialNumber(winner.serialNumberHex)
+        val dbLoser = dao.getCardBySerialNumber(loser.serialNumberHex)
 
-        val (newWinnerRating, newLoserRating) = calculateEloRating(winner.eloRating, loser.eloRating)
-        winner.eloRating = newWinnerRating
-        loser.eloRating = newLoserRating
+        if(dbWinner != null && dbLoser != null) {
+            dbWinner.wins++
+            dbLoser.losses++
 
-        dao.update(winner)
-        dao.update(loser)
+            val (newWinnerRating, newLoserRating) = calculateEloRating(dbWinner.eloRating, dbLoser.eloRating)
+            dbWinner.eloRating = newWinnerRating
+            dbLoser.eloRating = newLoserRating
+
+            dao.update(dbWinner)
+            dao.update(dbLoser)
+        } else {
+            dbWinner?.let {
+                it.wins++
+                val (newRating, _) = calculateEloRating(it.eloRating, loser.eloRating)
+                it.eloRating = newRating
+                dao.update(it)
+            }
+            dbLoser?.let {
+                it.losses++
+                val (_, newRating) = calculateEloRating(winner.eloRating, it.eloRating)
+                it.eloRating = newRating
+                dao.update(it)
+            }
+        }
     }
 
     private fun calculateEloRating(winnerRating: Int, loserRating: Int, kFactor: Int = 32): Pair<Int, Int> {
         val expectedWinner = 1.0 / (1.0 + 10.0.pow((loserRating - winnerRating) / 400.0))
         val expectedLoser = 1.0 / (1.0 + 10.0.pow((winnerRating - loserRating) / 400.0))
-
         val newWinnerRating = winnerRating + kFactor * (1 - expectedWinner)
         val newLoserRating = loserRating + kFactor * (0 - expectedLoser)
-
         return Pair(newWinnerRating.roundToInt(), newLoserRating.roundToInt())
     }
-
 
     private fun log(message: String) {
         binding.battleLogText.append("\n> $message")

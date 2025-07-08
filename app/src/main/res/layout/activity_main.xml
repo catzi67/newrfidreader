@@ -349,11 +349,21 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
-        android:orientation="horizontal"
         android:gravity="center"
+        android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/fab_copy"
         app:layout_constraintStart_toStartOf="parent">
+
+        <ImageButton
+            android:id="@+id/p2p_button"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/content_desc_p2p_button"
+            android:src="@drawable/ic_p2p_24"
+            app:tint="@android:color/white" />
 
         <ImageButton
             android:id="@+id/barcode_scanner_button"
@@ -368,12 +378,12 @@
             app:tint="@android:color/white" />
 
         <ImageButton
-            android:id="@+id/history_button"
+            android:id="@+id/collection_button"
             android:layout_width="0dp"
             android:layout_height="64dp"
             android:layout_weight="1"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/content_desc_history_button"
+            android:contentDescription="@string/content_desc_collection_button"
             android:padding="16dp"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_history_24"
@@ -401,16 +411,6 @@
             android:padding="16dp"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_gamepad_24"
-            app:tint="@android:color/white" />
-
-        <ImageButton
-            android:id="@+id/leaderboard_button"
-            android:layout_width="0dp"
-            android:layout_height="64dp"
-            android:layout_weight="1"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/content_desc_leaderboard_button"
-            android:src="@drawable/ic_leaderboard_24"
             app:tint="@android:color/white" />
 
         <ImageButton
@@ -446,9 +446,9 @@
         android:src="@drawable/ic_content_copy_24"
         android:visibility="invisible"
         app:backgroundTint="@color/fab_background_color"
-        app:tint="@android:color/white"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:tint="@android:color/white"
         tools:visibility="visible" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

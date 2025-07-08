@@ -26,9 +26,30 @@ interface ScannedCardDao {
     @Query("SELECT * FROM scanned_card_history WHERE id = :cardId")
     suspend fun getCardById(cardId: Int): ScannedCard?
 
+    @Query("SELECT * FROM scanned_card_history WHERE serialNumberHex = :serialNumberHex LIMIT 1")
+    suspend fun getCardBySerialNumber(serialNumberHex: String): ScannedCard?
+
     @Query("DELETE FROM scanned_card_history")
     suspend fun clearHistory()
 
     @Query("SELECT * FROM scanned_card_history ORDER BY eloRating DESC")
     fun getLeaderboard(): Flow<List<ScannedCard>>
+
+    @Transaction
+    suspend fun upsert(card: ScannedCard) {
+        val existingCard = getCardBySerialNumber(card.serialNumberHex)
+        if (existingCard == null) {
+            // Card is new, insert it.
+            insert(card)
+        } else {
+            // Card exists, update it but preserve its name, notes, and battle record.
+            val updatedCard = existingCard.copy(
+                scanTimestamp = card.scanTimestamp,
+                tagInfo = card.tagInfo,
+                score = card.score,
+                battleStats = card.battleStats
+            )
+            update(updatedCard)
+        }
+    }
 }
