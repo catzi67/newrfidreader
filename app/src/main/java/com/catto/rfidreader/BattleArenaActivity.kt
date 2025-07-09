@@ -286,6 +286,7 @@ class BattleArenaActivity : AppCompatActivity(), WifiP2pManager.ConnectionInfoLi
             fighterBinding.fighterSignature.setCardId(null)
             fighterBinding.fighterStats.visibility = View.GONE
             fighterBinding.selectFighterButton.visibility = View.VISIBLE
+            fighterBinding.selectFighterButton.isEnabled = true // FIX: Re-enable the button when the view is reset.
         }
     }
 
