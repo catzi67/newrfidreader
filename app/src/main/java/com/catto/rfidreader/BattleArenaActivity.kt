@@ -746,6 +746,7 @@ class BattleArenaActivity : AppCompatActivity(), WifiP2pManager.ConnectionInfoLi
             peers = newPeers
             notifyDataSetChanged()
         }
+        //
         class PeerViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
             private val nameText: TextView = itemView.findViewById(R.id.peer_name_text)
             fun bind(device: WifiP2pDevice) { nameText.text = device.deviceName }
