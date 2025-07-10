@@ -38,33 +38,13 @@
             android:text="@string/button_local_battle" />
 
         <Button
-            android:id="@+id/host_p2p_button"
+            android:id="@+id/find_p2p_battle_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="@string/button_host_p2p_battle" />
+            android:text="@string/button_find_p2p_battle" />
 
-        <Button
-            android:id="@+id/join_p2p_button"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/button_join_p2p_battle" />
     </LinearLayout>
-
-    <!-- P2P Peer List -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/peers_recycler_view"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        app:layout_constraintTop_toBottomOf="@id/battle_arena_toolbar"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        tools:listitem="@layout/list_item_peer"
-        tools:visibility="visible"/>
 
     <!-- Battle View -->
     <androidx.constraintlayout.widget.Group
@@ -146,7 +126,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
-        android:text="Reset P2P"
+        android:text="@string/button_reset_p2p"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

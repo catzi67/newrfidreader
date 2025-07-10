@@ -110,7 +110,7 @@
     <string name="battle_log_not_effective">"It's not very effective…"</string>
     <string name="title_activity_collection">My Collection</string>
     <string name="content_desc_collection_button">View My Collection</string>
-    <string name="title_activity_p2p_battle">Local Battle</string>
+    <string name="title_activity_p2p_battle">P2P Battle</string>
     <string name="content_desc_p2p_button">Start a local P2P battle</string>
     <string name="button_host_battle">Host Battle</string>
     <string name="button_join_battle">Join Battle</string>
@@ -124,7 +124,7 @@
     <string name="menu_sort_by_date">Sort by Date</string>
     <string name="p2p_permission_required">Location and Nearby Devices permissions are required.</string>
     <string name="p2p_card_selected">Card selected: %1$s. Ready to host or join.</string>
-    <string name="p2p_select_card_prompt">Please select a card for battle. (Tap here to select)</string>
+    <string name="p2p_select_card_prompt">Please select a card for battle.</string>
     <string name="p2p_discovery_initiated">Discovery Initiated</string>
     <string name="p2p_discovery_failed">Discovery Failed: %1$d</string>
     <string name="p2p_connecting_to">Connecting to %1$s</string>
@@ -146,8 +146,9 @@
     <string name="p2p_status_finding_opponents">Finding opponents…</string>
     <string name="collection_record_label">Record:</string>
 
-    <!-- New Strings for BattleArenaActivity -->
-    <string name="button_reset_p2p">Reset P2P</string>
+    <!-- New/Updated Strings for BattleArenaActivity -->
+    <string name="button_find_p2p_battle">Find P2P Battle</string>
+    <string name="button_reset_p2p">Cancel Search</string>
     <string name="p2p_status_connecting">Connecting…</string>
     <string name="button_back_to_menu">Back to Menu</string>
     <string name="battle_log_start">The battle begins!</string>
@@ -181,5 +182,10 @@
     <string name="dialog_title_p2p_requirements">P2P Requirements</string>
     <string name="button_go_to_settings">Go to Settings</string>
     <string name="toast_returning_to_menu">Returning to menu…</string>
+    <string name="p2p_status_seeking">Seeking opponent…</string>
+    <string name="p2p_status_waiting_as_host">Waiting for opponent…</string>
+    <string name="p2p_log_automatching_client">Opponent found. Attempting to connect…</string>
+    <string name="p2p_log_automatching_host">Opponent found. Waiting for them to connect…</string>
+    <string name="p2p_log_seeking_timeout">No opponents found. Becoming a host…</string>
 
 </resources>
