@@ -558,25 +558,17 @@ class BattleArenaActivity : AppCompatActivity(), WifiP2pManager.ConnectionInfoLi
     private val peerListListener = WifiP2pManager.PeerListListener { peerList ->
         if (matchmakingState != P2pMatchmakingState.SEEKING) return@PeerListListener
 
-        val otherPeers = peerList.deviceList.filter { it.deviceAddress != thisDevice?.deviceAddress }
-        if (otherPeers.isNotEmpty()) {
-            matchmakingJob?.cancel() // Found someone, cancel the "become host" timeout
-            wifiP2pManager.stopPeerDiscovery(channel, null)
-            matchmakingState = P2pMatchmakingState.IDLE // Stop further matchmaking attempts
+        val groupOwner = peerList.deviceList.find { it.isGroupOwner }
+        if (groupOwner != null) {
+            Log.d(TAG, "Found an existing group owner: ${groupOwner.deviceName}. Attempting to connect.")
+            matchmakingJob?.cancel()
+            matchmakingState = P2pMatchmakingState.IDLE
 
-            val ownAddress = thisDevice?.deviceAddress ?: ""
-            val opponent = otherPeers.first() // Connect to the first one found for simplicity
+            // Directly connect without stopping discovery first.
+            // The framework should handle pausing discovery during connection.
+            connectToPeer(groupOwner)
 
-            // Simple deterministic logic: device with the lower MAC address connects
-            if (ownAddress.compareTo(opponent.deviceAddress, ignoreCase = true) < 0) {
-                log(getString(R.string.p2p_log_automatching_client))
-                connectToPeer(opponent)
-            } else {
-                log(getString(R.string.p2p_log_automatching_host))
-                matchmakingState = P2pMatchmakingState.WAITING_AS_HOST
-                setUiState(P2pUiState.MATCHMAKING)
-                createP2pGroup()
-            }
+            return@PeerListListener
         }
     }
 
